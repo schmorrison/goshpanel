@@ -2,7 +2,7 @@
 
 GoshPanel is a linux webserver control panel which almost exclusively features Go programs, and projects.
 
-- The webapp is a WASM PWA built using github.com/maxence-chariere/go-app
+- The webapp is a WASM UI built using github.com/gopherjs/vecty
 - The reverse proxy for directing requests to local web services is github.com/caddyserver/caddy
 - The SMTP server for receiving emails is github.com/flashmob/go-guerrilla
 
