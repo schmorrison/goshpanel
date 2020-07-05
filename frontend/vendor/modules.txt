@@ -1,9 +1,0 @@
-# github.com/gopherjs/vecty v0.0.0-20200328200803-52636d1f7aba
-## explicit
-github.com/gopherjs/vecty
-github.com/gopherjs/vecty/elem
-# github.com/hajimehoshi/wasmserve v0.0.0-20200526111629-585d78f6b795
-## explicit
-# golang.org/x/net v0.0.0-20200625001655-4c5254603344
-## explicit
-golang.org/x/net/html/atom
