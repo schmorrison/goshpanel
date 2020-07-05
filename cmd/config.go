@@ -1,4 +1,6 @@
-package main
+// +build !wasm
+
+package cmd
 
 import (
 	"log"

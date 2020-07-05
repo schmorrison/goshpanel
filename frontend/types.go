@@ -7,6 +7,14 @@ import (
 	"github.com/gopherjs/vecty/elem"
 )
 
+type WebPageI interface {
+	// Render will output the vecty element that will be used on the site
+	Render() vecty.ComponentOrHTML
+
+	// Listen will receive a channel which the WebPage listens to for data in order to render
+	Listen(ch <-chan interface{})
+}
+
 // WebPage is a single 'webpage' which can be routed to in a browser.
 type WebPage struct {
 	vecty.Core
