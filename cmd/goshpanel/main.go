@@ -8,7 +8,9 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/domains"
 	"github.com/schmorrison/goshpanel/internal/files"
+	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/server"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/ui"
@@ -31,6 +33,10 @@ func main() {
 		logger.Error("failed to create files sandbox directory", "error", err)
 		os.Exit(1)
 	}
+	if err := os.MkdirAll(filepath.Dir(cfg.Caddy.ConfigPath), 0o755); err != nil {
+		logger.Error("failed to create caddy config directory", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := store.Open(cfg.Database.Path)
 	if err != nil {
@@ -42,6 +48,7 @@ func main() {
 	users := store.NewUserRepository(db)
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditRepository(db)
+	sites := store.NewSiteRepository(db)
 
 	secret, generated, err := cfg.SessionSecret()
 	if err != nil {
@@ -69,7 +76,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	uiHandler := ui.NewHandler(authService, filesService)
+	domainsService := domains.NewService(sites, cfg.Caddy.AdminURL, cfg.Caddy.ConfigPath)
+
+	logSources := make([]logpanel.Source, 0, len(cfg.Logging.Sources))
+	for _, source := range cfg.Logging.Sources {
+		logSources = append(logSources, logpanel.Source{Name: source.Name, Path: source.Path})
+	}
+	loggingService, err := logpanel.NewService(logSources)
+	if err != nil {
+		logger.Error("failed to initialize logging service", "error", err)
+		os.Exit(1)
+	}
+
+	uiHandler := ui.NewHandler(
+		authService,
+		filesService,
+		domainsService,
+		loggingService,
+		cfg.Terminal.Enabled,
+		cfg.Terminal.Shell,
+		cfg.Terminal.Workdir,
+	)
 	srv := server.New(cfg, logger, authService, uiHandler)
 	if err := srv.Run(); err != nil {
 		logger.Error("server stopped", "error", err)

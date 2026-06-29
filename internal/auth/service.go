@@ -171,6 +171,22 @@ func (s *Service) RequireAuth(next http.Handler) http.Handler {
 	})
 }
 
+// RequireAuthStrict rejects unauthenticated requests without redirecting.
+func (s *Service) RequireAuthStrict(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok, err := s.CurrentUser(r.Context())
+		if err != nil {
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // RedirectIfAuthenticated sends logged-in users away from public auth pages.
 func (s *Service) RedirectIfAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

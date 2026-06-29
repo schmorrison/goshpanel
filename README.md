@@ -50,6 +50,10 @@ Key settings:
 - `auth.session_secret` — session signing secret (required in production)
 - `auth.bootstrap_username` / `auth.bootstrap_password` — first-run admin user
 - `files.root` — sandbox root for the file manager (default `data/workspace`)
+- `caddy.admin_url` — optional Caddy admin API for live reloads
+- `caddy.config_path` — where generated Caddyfiles are written
+- `logging.sources` — allowlisted log files for tailing
+- `terminal.enabled` / `terminal.shell` / `terminal.workdir` — web terminal settings
 
 Environment variables use the `GOSHPANEL_` prefix, for example `GOSHPANEL_FILES_ROOT=/srv/sites`.
 
@@ -59,10 +63,11 @@ Environment variables use the `GOSHPANEL_` prefix, for example `GOSHPANEL_FILES_
 |--------|-------|--------|
 | Dashboard | `/dashboard` | Available |
 | Files | `/files` | Available — browse, upload, delete within sandbox |
+| Domains | `/domains` | Available — manage sites, generate/apply Caddyfile |
+| Logging | `/logging` | Available — SSE log tailing from allowlisted files |
+| Terminal | `/terminal` | Available — WebSocket shell (configurable) |
 | Database | `/database` | Planned |
-| Domains | `/domains` | Planned |
 | Email | `/email` | Planned |
-| Logging | `/logging` | Planned |
 | Security | `/security` | Planned |
 
 ## Project layout
@@ -82,4 +87,4 @@ deploy/                 systemd unit file
 
 ## Status
 
-Phase 2 adds the file manager: sandboxed listing, HTMX navigation, upload/delete, permission display, and SQLite audit logging.
+Phase 3 adds domains/Caddy management, SSE log tailing, and a WebSocket terminal with xterm.js.

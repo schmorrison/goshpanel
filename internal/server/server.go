@@ -63,17 +63,24 @@ func New(cfg config.Config, logger *slog.Logger, authService *auth.Service, uiHa
 		r.Get("/files/list", uiHandler.FilesList)
 		r.With(authService.CSRFProtect).Post("/files/upload", uiHandler.FilesUpload)
 		r.With(authService.CSRFProtect).Post("/files/delete", uiHandler.FilesDelete)
+		r.Get("/domains", uiHandler.Domains)
+		r.With(authService.CSRFProtect).Post("/domains/create", uiHandler.DomainsCreate)
+		r.With(authService.CSRFProtect).Post("/domains/delete", uiHandler.DomainsDelete)
+		r.With(authService.CSRFProtect).Post("/domains/apply", uiHandler.DomainsApply)
+		r.Get("/logging", uiHandler.Logging)
+		r.Get("/logging/tail", uiHandler.LoggingTail)
+		r.Get("/terminal", uiHandler.Terminal)
+		r.Get("/terminal/ws", uiHandler.TerminalWS)
 	})
 
 	return &Server{
 		cfg:    cfg,
 		logger: logger,
 		http: &http.Server{
-			Addr:         cfg.Addr(),
-			Handler:      r,
-			ReadTimeout:  15 * time.Second,
-			WriteTimeout: 15 * time.Second,
-			IdleTimeout:  60 * time.Second,
+			Addr:        cfg.Addr(),
+			Handler:     r,
+			ReadTimeout: 30 * time.Second,
+			IdleTimeout: 120 * time.Second,
 		},
 	}
 }

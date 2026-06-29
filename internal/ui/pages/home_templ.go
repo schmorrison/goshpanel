@@ -223,11 +223,11 @@ func dashboardContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = moduleCard("Database", "Inspect schemas and run queries.", "database", false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains", true).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains", false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = moduleCard("Database", "Inspect schemas and run queries.", "database", false).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -235,7 +235,7 @@ func dashboardContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = moduleCard("Logging", "Tail application and system logs.", "logging", false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = moduleCard("Logging", "Tail application and system logs.", "logging", true).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

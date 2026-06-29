@@ -5,7 +5,9 @@ go 1.22
 require (
 	github.com/a-h/templ v0.2.778
 	github.com/alexedwards/scs/v2 v2.8.0
+	github.com/creack/pty v1.1.23
 	github.com/go-chi/chi/v5 v5.1.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/spf13/viper v1.19.0
 	golang.org/x/crypto v0.26.0
 	modernc.org/sqlite v1.33.1

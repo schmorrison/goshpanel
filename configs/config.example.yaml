@@ -12,3 +12,17 @@ auth:
 
 files:
   root: data/workspace
+
+caddy:
+  admin_url: ""
+  config_path: data/caddy/Caddyfile
+
+logging:
+  sources:
+    - name: panel
+      path: data/goshpanel.log
+
+terminal:
+  enabled: true
+  shell: /bin/bash
+  workdir: data/workspace

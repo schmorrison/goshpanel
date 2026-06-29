@@ -17,6 +17,8 @@ const (
 	defaultDatabasePath  = "data/goshpanel.db"
 	defaultBootstrapUser = "admin"
 	defaultFilesRoot     = "data/workspace"
+	defaultCaddyConfig   = "data/caddy/Caddyfile"
+	defaultTerminalShell = "/bin/bash"
 )
 
 // Config holds GoshPanel runtime settings.
@@ -25,6 +27,9 @@ type Config struct {
 	Database DatabaseConfig `mapstructure:"database"`
 	Auth     AuthConfig     `mapstructure:"auth"`
 	Files    FilesConfig    `mapstructure:"files"`
+	Caddy    CaddyConfig    `mapstructure:"caddy"`
+	Logging  LoggingConfig  `mapstructure:"logging"`
+	Terminal TerminalConfig `mapstructure:"terminal"`
 }
 
 // ServerConfig controls the HTTP listener.
@@ -50,6 +55,30 @@ type FilesConfig struct {
 	Root string `mapstructure:"root"`
 }
 
+// CaddyConfig controls reverse-proxy integration.
+type CaddyConfig struct {
+	AdminURL   string `mapstructure:"admin_url"`
+	ConfigPath string `mapstructure:"config_path"`
+}
+
+// LoggingSourceConfig identifies an allowlisted log file.
+type LoggingSourceConfig struct {
+	Name string `mapstructure:"name"`
+	Path string `mapstructure:"path"`
+}
+
+// LoggingConfig controls log tailing sources.
+type LoggingConfig struct {
+	Sources []LoggingSourceConfig `mapstructure:"sources"`
+}
+
+// TerminalConfig controls the web terminal.
+type TerminalConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	Shell   string `mapstructure:"shell"`
+	Workdir string `mapstructure:"workdir"`
+}
+
 // Addr returns the host:port listen address.
 func (c Config) Addr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
@@ -64,6 +93,10 @@ func Load() (Config, error) {
 	v.SetDefault("database.path", defaultDatabasePath)
 	v.SetDefault("auth.bootstrap_username", defaultBootstrapUser)
 	v.SetDefault("files.root", defaultFilesRoot)
+	v.SetDefault("caddy.config_path", defaultCaddyConfig)
+	v.SetDefault("terminal.enabled", true)
+	v.SetDefault("terminal.shell", defaultTerminalShell)
+	v.SetDefault("terminal.workdir", defaultFilesRoot)
 
 	_ = v.BindEnv("server.host", "GOSHPANEL_SERVER_HOST")
 	_ = v.BindEnv("server.port", "GOSHPANEL_SERVER_PORT")
@@ -72,6 +105,11 @@ func Load() (Config, error) {
 	_ = v.BindEnv("auth.bootstrap_username", "GOSHPANEL_AUTH_BOOTSTRAP_USERNAME")
 	_ = v.BindEnv("auth.bootstrap_password", "GOSHPANEL_AUTH_BOOTSTRAP_PASSWORD")
 	_ = v.BindEnv("files.root", "GOSHPANEL_FILES_ROOT")
+	_ = v.BindEnv("caddy.admin_url", "GOSHPANEL_CADDY_ADMIN_URL")
+	_ = v.BindEnv("caddy.config_path", "GOSHPANEL_CADDY_CONFIG_PATH")
+	_ = v.BindEnv("terminal.enabled", "GOSHPANEL_TERMINAL_ENABLED")
+	_ = v.BindEnv("terminal.shell", "GOSHPANEL_TERMINAL_SHELL")
+	_ = v.BindEnv("terminal.workdir", "GOSHPANEL_TERMINAL_WORKDIR")
 
 	v.SetEnvPrefix("GOSHPANEL")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/schmorrison/goshpanel/internal/auth"
+	"github.com/schmorrison/goshpanel/internal/domains"
 	"github.com/schmorrison/goshpanel/internal/files"
+	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/ui/pages"
 )
@@ -15,15 +17,25 @@ const maxUploadSize = 32 << 20
 
 // Handler serves HTML pages for the panel UI.
 type Handler struct {
-	auth  *auth.Service
-	files *files.Service
+	auth            *auth.Service
+	files           *files.Service
+	domains         *domains.Service
+	logging         *logpanel.Service
+	terminalEnabled bool
+	terminalShell   string
+	terminalWorkdir string
 }
 
 // NewHandler returns a UI handler.
-func NewHandler(authService *auth.Service, filesService *files.Service) *Handler {
+func NewHandler(authService *auth.Service, filesService *files.Service, domainsService *domains.Service, loggingService *logpanel.Service, terminalEnabled bool, terminalShell, terminalWorkdir string) *Handler {
 	return &Handler{
-		auth:  authService,
-		files: filesService,
+		auth:            authService,
+		files:           filesService,
+		domains:         domainsService,
+		logging:         loggingService,
+		terminalEnabled: terminalEnabled,
+		terminalShell:   terminalShell,
+		terminalWorkdir: terminalWorkdir,
 	}
 }
 

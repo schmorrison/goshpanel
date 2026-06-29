@@ -64,10 +64,10 @@ templ dashboardContent() {
 		</header>
 		<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
 			@moduleCard("Files", "Browse and manage server files.", "files", true)
+			@moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains", true)
 			@moduleCard("Database", "Inspect schemas and run queries.", "database", false)
-			@moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains", false)
 			@moduleCard("Email", "Configure mail accounts and routing.", "email", false)
-			@moduleCard("Logging", "Tail application and system logs.", "logging", false)
+			@moduleCard("Logging", "Tail application and system logs.", "logging", true)
 			@moduleCard("Security", "Certificates, access, and hardening.", "security", false)
 		</section>
 	</div>

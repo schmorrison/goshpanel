@@ -13,7 +13,9 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/domains"
 	"github.com/schmorrison/goshpanel/internal/files"
+	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/ui"
 	"golang.org/x/crypto/bcrypt"
@@ -182,7 +184,13 @@ func newTestServer(t *testing.T) *Server {
 		t.Fatalf("files.NewService() error = %v", err)
 	}
 
-	uiHandler := ui.NewHandler(authService, filesService)
+	loggingService, err := logpanel.NewService(nil)
+	if err != nil {
+		t.Fatalf("logging.NewService() error = %v", err)
+	}
+
+	domainsService := domains.NewService(store.NewSiteRepository(db), "", t.TempDir()+"/Caddyfile")
+	uiHandler := ui.NewHandler(authService, filesService, domainsService, loggingService, false, "/bin/bash", t.TempDir())
 	return New(config.Config{}, slog.New(slog.NewTextHandler(io.Discard, nil)), authService, uiHandler)
 }
 
