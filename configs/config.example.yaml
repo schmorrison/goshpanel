@@ -1,0 +1,32 @@
+server:
+  host: 0.0.0.0
+  port: 4674
+
+database:
+  path: data/goshpanel.db
+
+auth:
+  session_secret: change-me-in-production
+  bootstrap_username: admin
+  bootstrap_password: ""
+
+files:
+  root: data/workspace
+
+caddy:
+  admin_url: ""
+  config_path: data/caddy/Caddyfile
+
+logging:
+  sources:
+    - name: panel
+      path: data/goshpanel.log
+
+terminal:
+  enabled: true
+  shell: /bin/bash
+  workdir: data/workspace
+
+email:
+  default_domain: example.com
+  config_path: data/email/guerrilla.json
