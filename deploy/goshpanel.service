@@ -1,0 +1,24 @@
+[Unit]
+Description=GoshPanel Linux hosting control panel
+Documentation=https://github.com/schmorrison/goshpanel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=goshpanel
+Group=goshpanel
+ExecStart=/usr/local/bin/goshpanel
+EnvironmentFile=-/etc/goshpanel/goshpanel.env
+Restart=on-failure
+RestartSec=5
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/goshpanel
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

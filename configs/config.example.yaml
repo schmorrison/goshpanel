@@ -1,0 +1,11 @@
+server:
+  host: 0.0.0.0
+  port: 4674
+
+database:
+  path: data/goshpanel.db
+
+auth:
+  session_secret: change-me-in-production
+  bootstrap_username: admin
+  bootstrap_password: ""
