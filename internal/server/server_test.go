@@ -13,7 +13,9 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/dbmanager"
 	"github.com/schmorrison/goshpanel/internal/domains"
+	"github.com/schmorrison/goshpanel/internal/email"
 	"github.com/schmorrison/goshpanel/internal/files"
 	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/store"
@@ -190,7 +192,9 @@ func newTestServer(t *testing.T) *Server {
 	}
 
 	domainsService := domains.NewService(store.NewSiteRepository(db), "", t.TempDir()+"/Caddyfile")
-	uiHandler := ui.NewHandler(authService, filesService, domainsService, loggingService, false, "/bin/bash", t.TempDir())
+	dbmanagerService := dbmanager.NewService(store.NewConnectionRepository(db), "test-session-secret-value-32b")
+	emailService := email.NewService(store.NewMailboxRepository(db), "test-session-secret-value-32b", "example.com", t.TempDir()+"/guerrilla.json")
+	uiHandler := ui.NewHandler(authService, filesService, domainsService, loggingService, dbmanagerService, emailService, "example.com", false, "/bin/bash", t.TempDir())
 	return New(config.Config{}, slog.New(slog.NewTextHandler(io.Discard, nil)), authService, uiHandler)
 }
 

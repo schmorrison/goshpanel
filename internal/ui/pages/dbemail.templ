@@ -1,0 +1,203 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/schmorrison/goshpanel/internal/dbmanager"
+	"github.com/schmorrison/goshpanel/internal/store"
+	"github.com/schmorrison/goshpanel/internal/ui/layouts"
+)
+
+// DatabasePage renders saved connections.
+templ DatabasePage(username string, csrfToken string, connections []store.DBConnection, message string, errorMessage string) {
+	@layouts.Admin("Database — GoshPanel", username, csrfToken, "database", databaseIndex(csrfToken, connections, message, errorMessage))
+}
+
+templ databaseIndex(csrfToken string, connections []store.DBConnection, message string, errorMessage string) {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-8">
+			<h1 class="text-3xl font-bold text-white">Database</h1>
+			<p class="mt-2 text-slate-400">Save SQL connections and run read-only queries.</p>
+		</header>
+		@statusMessages(message, errorMessage)
+		<section class="mb-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<h2 class="text-lg font-semibold text-white">Add connection</h2>
+			<form method="post" action="/database/create" class="mt-4 grid gap-4 md:grid-cols-2">
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<input name="name" placeholder="Production Postgres" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<select name="driver" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white">
+					<option value="sqlite">sqlite</option>
+					<option value="postgres">postgres</option>
+					<option value="mysql">mysql</option>
+				</select>
+				<input name="host" placeholder="127.0.0.1" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="port" placeholder="5432" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="database_name" placeholder="database or sqlite file path" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="username" placeholder="username" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="password" type="password" placeholder="password" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<button type="submit" class="md:col-span-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Save connection</button>
+			</form>
+		</section>
+		<section class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+			<table class="min-w-full text-left text-sm">
+				<thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+					<tr>
+						<th class="px-5 py-3">Name</th>
+						<th class="px-5 py-3">Driver</th>
+						<th class="px-5 py-3">Target</th>
+						<th class="px-5 py-3 text-right">Actions</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-slate-800">
+					if len(connections) == 0 {
+						<tr><td colspan="4" class="px-5 py-8 text-center text-slate-500">No connections saved yet.</td></tr>
+					}
+					for _, conn := range connections {
+						<tr>
+							<td class="px-5 py-3 text-white">{ conn.Name }</td>
+							<td class="px-5 py-3 text-slate-400">{ conn.Driver }</td>
+							<td class="px-5 py-3 text-slate-400">{ conn.DatabaseName }</td>
+							<td class="px-5 py-3 text-right space-x-2">
+								<a href={ templ.URL("/database/view?id=" + strconv.FormatInt(conn.ID, 10)) } class="rounded-lg border border-slate-700 px-3 py-1 text-xs text-emerald-300 hover:bg-slate-800">Open</a>
+								<form method="post" action="/database/delete" class="inline">
+									<input type="hidden" name="csrf_token" value={ csrfToken }/>
+									<input type="hidden" name="id" value={ strconv.FormatInt(conn.ID, 10) }/>
+									<button type="submit" class="rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/10">Delete</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</section>
+	</div>
+}
+
+// DatabaseViewPage renders schema browser and query runner.
+templ DatabaseViewPage(username string, csrfToken string, conn store.DBConnection, tables []string, query string, result dbmanager.QueryResult, errorMessage string) {
+	@layouts.Admin(conn.Name+" — Database", username, csrfToken, "database", databaseView(csrfToken, conn, tables, query, result, errorMessage))
+}
+
+templ databaseView(csrfToken string, conn store.DBConnection, tables []string, query string, result dbmanager.QueryResult, errorMessage string) {
+	<div class="px-6 py-8 lg:px-10">
+		<div class="mb-6">
+			<a href="/database" class="text-sm text-emerald-300 hover:text-emerald-200">← All connections</a>
+			<h1 class="mt-3 text-3xl font-bold text-white">{ conn.Name }</h1>
+			<p class="mt-2 text-slate-400">{ conn.Driver } · { conn.DatabaseName }</p>
+		</div>
+		if errorMessage != "" {
+			<p class="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{ errorMessage }</p>
+		}
+		<section class="mb-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<h2 class="text-lg font-semibold text-white">Tables</h2>
+			<div class="mt-4 flex flex-wrap gap-2">
+				if len(tables) == 0 {
+					<span class="text-sm text-slate-500">No tables found.</span>
+				}
+				for _, table := range tables {
+					<span class="rounded-lg bg-slate-800 px-3 py-1 text-xs text-slate-300">{ table }</span>
+				}
+			</div>
+		</section>
+		<section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<h2 class="text-lg font-semibold text-white">Read-only query</h2>
+			<form method="post" action={ templ.URL("/database/query?id=" + strconv.FormatInt(conn.ID, 10)) } class="mt-4 space-y-4">
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<textarea name="query" rows="5" class="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 font-mono text-sm text-white">{ query }</textarea>
+				<button type="submit" class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Run query</button>
+			</form>
+			if len(result.Columns) > 0 {
+				<div class="mt-6 overflow-x-auto">
+					<table class="min-w-full text-left text-sm">
+						<thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+							<tr>
+								for _, column := range result.Columns {
+									<th class="px-4 py-2">{ column }</th>
+								}
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-slate-800">
+							for _, row := range result.Rows {
+								<tr>
+									for _, value := range row {
+										<td class="px-4 py-2 text-slate-300">{ value }</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+// EmailPage renders mailbox management.
+templ EmailPage(username string, csrfToken string, mailboxes []store.Mailbox, defaultDomain string, message string, errorMessage string) {
+	@layouts.Admin("Email — GoshPanel", username, csrfToken, "email", emailContent(csrfToken, mailboxes, defaultDomain, message, errorMessage))
+}
+
+templ emailContent(csrfToken string, mailboxes []store.Mailbox, defaultDomain string, message string, errorMessage string) {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-8">
+			<h1 class="text-3xl font-bold text-white">Email</h1>
+			<p class="mt-2 text-slate-400">Manage local mailboxes and export go-guerrilla configuration.</p>
+		</header>
+		@statusMessages(message, errorMessage)
+		<section class="mb-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<h2 class="text-lg font-semibold text-white">Add mailbox</h2>
+			<form method="post" action="/email/create" class="mt-4 grid gap-4 md:grid-cols-2">
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<input name="local_part" placeholder="hello" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="domain" placeholder={ defaultDomain } class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="password" type="password" placeholder="mailbox password" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="forward_to" placeholder="optional forward address" class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<button type="submit" class="md:col-span-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Create mailbox</button>
+			</form>
+		</section>
+		<div class="mb-4">
+			<form method="post" action="/email/export">
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<button type="submit" class="rounded-xl border border-emerald-500/40 px-4 py-2 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/10">Export go-guerrilla config</button>
+			</form>
+		</div>
+		<section class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+			<table class="min-w-full text-left text-sm">
+				<thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+					<tr>
+						<th class="px-5 py-3">Address</th>
+						<th class="px-5 py-3">Forward</th>
+						<th class="px-5 py-3 text-right">Actions</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-slate-800">
+					if len(mailboxes) == 0 {
+						<tr><td colspan="3" class="px-5 py-8 text-center text-slate-500">No mailboxes configured yet.</td></tr>
+					}
+					for _, mailbox := range mailboxes {
+						<tr>
+							<td class="px-5 py-3 text-white">{ mailbox.LocalPart + "@" + mailbox.Domain }</td>
+							<td class="px-5 py-3 text-slate-400">{ mailbox.ForwardTo }</td>
+							<td class="px-5 py-3 text-right">
+								<form method="post" action="/email/delete" class="inline">
+									<input type="hidden" name="csrf_token" value={ csrfToken }/>
+									<input type="hidden" name="id" value={ strconv.FormatInt(mailbox.ID, 10) }/>
+									<button type="submit" class="rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/10">Delete</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</section>
+	</div>
+}
+
+templ statusMessages(message string, errorMessage string) {
+	if message != "" {
+		<p class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{ message }</p>
+	}
+	if errorMessage != "" {
+		<p class="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{ errorMessage }</p>
+	}
+}

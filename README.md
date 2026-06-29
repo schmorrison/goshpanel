@@ -66,8 +66,8 @@ Environment variables use the `GOSHPANEL_` prefix, for example `GOSHPANEL_FILES_
 | Domains | `/domains` | Available — manage sites, generate/apply Caddyfile |
 | Logging | `/logging` | Available — SSE log tailing from allowlisted files |
 | Terminal | `/terminal` | Available — WebSocket shell (configurable) |
-| Database | `/database` | Planned |
-| Email | `/email` | Planned |
+| Database | `/database` | Available — saved connections, schema browser, read-only queries |
+| Email | `/email` | Available — mailbox CRUD and go-guerrilla config export |
 | Security | `/security` | Planned |
 
 ## Project layout
@@ -87,4 +87,4 @@ deploy/                 systemd unit file
 
 ## Status
 
-Phase 3 adds domains/Caddy management, SSE log tailing, and a WebSocket terminal with xterm.js.
+Phase 4 adds the database manager and email module with encrypted credential storage.

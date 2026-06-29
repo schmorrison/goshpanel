@@ -26,3 +26,7 @@ terminal:
   enabled: true
   shell: /bin/bash
   workdir: data/workspace
+
+email:
+  default_domain: example.com
+  config_path: data/email/guerrilla.json

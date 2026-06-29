@@ -71,6 +71,15 @@ func New(cfg config.Config, logger *slog.Logger, authService *auth.Service, uiHa
 		r.Get("/logging/tail", uiHandler.LoggingTail)
 		r.Get("/terminal", uiHandler.Terminal)
 		r.Get("/terminal/ws", uiHandler.TerminalWS)
+		r.Get("/database", uiHandler.Database)
+		r.Get("/database/view", uiHandler.DatabaseView)
+		r.With(authService.CSRFProtect).Post("/database/create", uiHandler.DatabaseCreate)
+		r.With(authService.CSRFProtect).Post("/database/delete", uiHandler.DatabaseDelete)
+		r.With(authService.CSRFProtect).Post("/database/query", uiHandler.DatabaseQuery)
+		r.Get("/email", uiHandler.Email)
+		r.With(authService.CSRFProtect).Post("/email/create", uiHandler.EmailCreate)
+		r.With(authService.CSRFProtect).Post("/email/delete", uiHandler.EmailDelete)
+		r.With(authService.CSRFProtect).Post("/email/export", uiHandler.EmailExport)
 	})
 
 	return &Server{

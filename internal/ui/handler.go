@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/schmorrison/goshpanel/internal/auth"
+	"github.com/schmorrison/goshpanel/internal/dbmanager"
 	"github.com/schmorrison/goshpanel/internal/domains"
+	"github.com/schmorrison/goshpanel/internal/email"
 	"github.com/schmorrison/goshpanel/internal/files"
 	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/store"
@@ -17,25 +19,31 @@ const maxUploadSize = 32 << 20
 
 // Handler serves HTML pages for the panel UI.
 type Handler struct {
-	auth            *auth.Service
-	files           *files.Service
-	domains         *domains.Service
-	logging         *logpanel.Service
-	terminalEnabled bool
-	terminalShell   string
-	terminalWorkdir string
+	auth               *auth.Service
+	files              *files.Service
+	domains            *domains.Service
+	logging            *logpanel.Service
+	dbmanager          *dbmanager.Service
+	email              *email.Service
+	emailDefaultDomain string
+	terminalEnabled    bool
+	terminalShell      string
+	terminalWorkdir    string
 }
 
 // NewHandler returns a UI handler.
-func NewHandler(authService *auth.Service, filesService *files.Service, domainsService *domains.Service, loggingService *logpanel.Service, terminalEnabled bool, terminalShell, terminalWorkdir string) *Handler {
+func NewHandler(authService *auth.Service, filesService *files.Service, domainsService *domains.Service, loggingService *logpanel.Service, dbmanagerService *dbmanager.Service, emailService *email.Service, emailDefaultDomain string, terminalEnabled bool, terminalShell, terminalWorkdir string) *Handler {
 	return &Handler{
-		auth:            authService,
-		files:           filesService,
-		domains:         domainsService,
-		logging:         loggingService,
-		terminalEnabled: terminalEnabled,
-		terminalShell:   terminalShell,
-		terminalWorkdir: terminalWorkdir,
+		auth:               authService,
+		files:              filesService,
+		domains:            domainsService,
+		logging:            loggingService,
+		dbmanager:          dbmanagerService,
+		email:              emailService,
+		emailDefaultDomain: emailDefaultDomain,
+		terminalEnabled:    terminalEnabled,
+		terminalShell:      terminalShell,
+		terminalWorkdir:    terminalWorkdir,
 	}
 }
 

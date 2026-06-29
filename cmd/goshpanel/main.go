@@ -8,7 +8,9 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/dbmanager"
 	"github.com/schmorrison/goshpanel/internal/domains"
+	"github.com/schmorrison/goshpanel/internal/email"
 	"github.com/schmorrison/goshpanel/internal/files"
 	logpanel "github.com/schmorrison/goshpanel/internal/logging"
 	"github.com/schmorrison/goshpanel/internal/server"
@@ -49,6 +51,8 @@ func main() {
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditRepository(db)
 	sites := store.NewSiteRepository(db)
+	connections := store.NewConnectionRepository(db)
+	mailboxes := store.NewMailboxRepository(db)
 
 	secret, generated, err := cfg.SessionSecret()
 	if err != nil {
@@ -88,11 +92,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	dbmanagerService := dbmanager.NewService(connections, secret)
+	emailService := email.NewService(mailboxes, secret, cfg.Email.DefaultDomain, cfg.Email.ConfigPath)
+
 	uiHandler := ui.NewHandler(
 		authService,
 		filesService,
 		domainsService,
 		loggingService,
+		dbmanagerService,
+		emailService,
+		cfg.Email.DefaultDomain,
 		cfg.Terminal.Enabled,
 		cfg.Terminal.Shell,
 		cfg.Terminal.Workdir,

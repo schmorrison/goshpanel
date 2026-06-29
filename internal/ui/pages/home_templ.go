@@ -227,11 +227,11 @@ func dashboardContent() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = moduleCard("Database", "Inspect schemas and run queries.", "database", false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = moduleCard("Database", "Inspect schemas and run queries.", "database", true).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = moduleCard("Email", "Configure mail accounts and routing.", "email", false).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = moduleCard("Email", "Configure mail accounts and routing.", "email", true).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

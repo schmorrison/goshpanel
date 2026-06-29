@@ -19,6 +19,8 @@ const (
 	defaultFilesRoot     = "data/workspace"
 	defaultCaddyConfig   = "data/caddy/Caddyfile"
 	defaultTerminalShell = "/bin/bash"
+	defaultEmailDomain   = "example.com"
+	defaultEmailConfig   = "data/email/guerrilla.json"
 )
 
 // Config holds GoshPanel runtime settings.
@@ -30,6 +32,7 @@ type Config struct {
 	Caddy    CaddyConfig    `mapstructure:"caddy"`
 	Logging  LoggingConfig  `mapstructure:"logging"`
 	Terminal TerminalConfig `mapstructure:"terminal"`
+	Email    EmailConfig    `mapstructure:"email"`
 }
 
 // ServerConfig controls the HTTP listener.
@@ -79,6 +82,12 @@ type TerminalConfig struct {
 	Workdir string `mapstructure:"workdir"`
 }
 
+// EmailConfig controls mailbox management and export.
+type EmailConfig struct {
+	DefaultDomain string `mapstructure:"default_domain"`
+	ConfigPath    string `mapstructure:"config_path"`
+}
+
 // Addr returns the host:port listen address.
 func (c Config) Addr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
@@ -97,6 +106,8 @@ func Load() (Config, error) {
 	v.SetDefault("terminal.enabled", true)
 	v.SetDefault("terminal.shell", defaultTerminalShell)
 	v.SetDefault("terminal.workdir", defaultFilesRoot)
+	v.SetDefault("email.default_domain", defaultEmailDomain)
+	v.SetDefault("email.config_path", defaultEmailConfig)
 
 	_ = v.BindEnv("server.host", "GOSHPANEL_SERVER_HOST")
 	_ = v.BindEnv("server.port", "GOSHPANEL_SERVER_PORT")
@@ -110,6 +121,8 @@ func Load() (Config, error) {
 	_ = v.BindEnv("terminal.enabled", "GOSHPANEL_TERMINAL_ENABLED")
 	_ = v.BindEnv("terminal.shell", "GOSHPANEL_TERMINAL_SHELL")
 	_ = v.BindEnv("terminal.workdir", "GOSHPANEL_TERMINAL_WORKDIR")
+	_ = v.BindEnv("email.default_domain", "GOSHPANEL_EMAIL_DEFAULT_DOMAIN")
+	_ = v.BindEnv("email.config_path", "GOSHPANEL_EMAIL_CONFIG_PATH")
 
 	v.SetEnvPrefix("GOSHPANEL")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
