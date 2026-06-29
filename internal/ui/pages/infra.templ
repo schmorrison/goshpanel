@@ -1,0 +1,145 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/schmorrison/goshpanel/internal/logging"
+	"github.com/schmorrison/goshpanel/internal/store"
+	"github.com/schmorrison/goshpanel/internal/ui/layouts"
+)
+
+// DomainsPage renders virtual host management.
+templ DomainsPage(username string, csrfToken string, sites []store.Site, caddyfile string, message string, errorMessage string) {
+	@layouts.Admin("Domains — GoshPanel", username, csrfToken, "domains", domainsContent(csrfToken, sites, caddyfile, message, errorMessage))
+}
+
+templ domainsContent(csrfToken string, sites []store.Site, caddyfile string, message string, errorMessage string) {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-8">
+			<h1 class="text-3xl font-bold text-white">Domains</h1>
+			<p class="mt-2 text-slate-400">Manage reverse-proxy sites and apply a generated Caddyfile.</p>
+		</header>
+		if message != "" {
+			<p class="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{ message }</p>
+		}
+		if errorMessage != "" {
+			<p class="mb-4 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{ errorMessage }</p>
+		}
+		<section class="mb-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<h2 class="text-lg font-semibold text-white">Add site</h2>
+			<form method="post" action="/domains/create" class="mt-4 grid gap-4 md:grid-cols-3">
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<input name="domain" placeholder="example.com" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<input name="upstream" placeholder="localhost:3000" required class="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white"/>
+				<button type="submit" class="rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Add site</button>
+			</form>
+		</section>
+		<section class="mb-8 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+			<table class="min-w-full text-left text-sm">
+				<thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+					<tr>
+						<th class="px-5 py-3">Domain</th>
+						<th class="px-5 py-3">Upstream</th>
+						<th class="px-5 py-3 text-right">Actions</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-slate-800">
+					if len(sites) == 0 {
+						<tr>
+							<td colspan="3" class="px-5 py-8 text-center text-slate-500">No sites configured yet.</td>
+						</tr>
+					}
+					for _, site := range sites {
+						<tr>
+							<td class="px-5 py-3 text-white">{ site.Domain }</td>
+							<td class="px-5 py-3 text-slate-400">{ site.Upstream }</td>
+							<td class="px-5 py-3 text-right">
+								<form method="post" action="/domains/delete" class="inline">
+									<input type="hidden" name="csrf_token" value={ csrfToken }/>
+									<input type="hidden" name="id" value={ strconv.FormatInt(site.ID, 10) }/>
+									<button type="submit" class="rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/10">Delete</button>
+								</form>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</section>
+		<section class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+			<div class="mb-4 flex items-center justify-between gap-4">
+				<h2 class="text-lg font-semibold text-white">Generated Caddyfile</h2>
+				<form method="post" action="/domains/apply">
+					<input type="hidden" name="csrf_token" value={ csrfToken }/>
+					<button type="submit" class="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Apply to Caddy</button>
+				</form>
+			</div>
+			<pre class="overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-300">{ caddyfile }</pre>
+		</section>
+	</div>
+}
+
+// LoggingPage renders the log tail viewer.
+templ LoggingPage(username string, csrfToken string, sources []logging.Source, activeSource string) {
+	@layouts.Admin("Logging — GoshPanel", username, csrfToken, "logging", loggingContent(sources, activeSource))
+}
+
+templ loggingContent(sources []logging.Source, activeSource string) {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-8">
+			<h1 class="text-3xl font-bold text-white">Logging</h1>
+			<p class="mt-2 text-slate-400">Tail allowlisted log files with server-sent events.</p>
+		</header>
+		<div class="mb-4 flex flex-wrap gap-2">
+			for _, source := range sources {
+				<a
+					href={ templ.URL("/logging?source=" + source.Name) }
+					class={ loggingTabClass(source.Name, activeSource) }
+				>{ source.Name }</a>
+			}
+		</div>
+		<div
+			id="log-output"
+			class="h-[32rem] overflow-y-auto rounded-2xl border border-slate-800 bg-black p-4 font-mono text-xs text-emerald-300 whitespace-pre-wrap"
+		></div>
+		<script>
+			(() => {
+				const output = document.getElementById("log-output");
+				const source = { templ.JSString(activeSource) };
+				const stream = new EventSource("/logging/tail?source=" + encodeURIComponent(source));
+				stream.onmessage = (event) => {
+					output.textContent += event.data + "\n";
+					output.scrollTop = output.scrollHeight;
+				};
+				stream.onerror = () => {
+					output.textContent += "\n[log stream disconnected]\n";
+				};
+			})();
+		</script>
+	</div>
+}
+
+func loggingTabClass(name, active string) string {
+	if name == active {
+		return "rounded-lg bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-300"
+	}
+	return "rounded-lg px-3 py-2 text-sm text-slate-300 hover:bg-slate-800"
+}
+
+// TerminalPage renders the browser terminal.
+templ TerminalPage(username string, csrfToken string) {
+	@layouts.Admin("Terminal — GoshPanel", username, csrfToken, "terminal", terminalContent())
+}
+
+templ terminalContent() {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-6">
+			<h1 class="text-3xl font-bold text-white">Terminal</h1>
+			<p class="mt-2 text-slate-400">Interactive shell session over WebSocket.</p>
+		</header>
+		<div id="terminal" class="h-[32rem] overflow-hidden rounded-2xl border border-slate-800 bg-black"></div>
+		<link rel="stylesheet" href="/static/css/xterm.css"/>
+		<script src="/static/js/xterm.min.js"></script>
+		<script src="/static/js/xterm-addon-fit.min.js"></script>
+		<script src="/static/js/terminal.js" defer></script>
+	</div>
+}
