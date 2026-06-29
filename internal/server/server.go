@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
 	"github.com/schmorrison/goshpanel/internal/ui"
 	"github.com/schmorrison/goshpanel/web"
@@ -24,12 +25,11 @@ type Server struct {
 }
 
 // New constructs a configured HTTP server.
-func New(cfg config.Config, logger *slog.Logger) *Server {
+func New(cfg config.Config, logger *slog.Logger, authService *auth.Service, uiHandler *ui.Handler) *Server {
 	if logger == nil {
 		logger = slog.Default()
 	}
 
-	uiHandler := ui.NewHandler()
 	staticFS, err := fs.Sub(web.Static, "static")
 	if err != nil {
 		panic(fmt.Errorf("static filesystem: %w", err))
@@ -40,10 +40,26 @@ func New(cfg config.Config, logger *slog.Logger) *Server {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(requestLogger(logger))
+	r.Use(authService.SessionMiddleware())
 
 	r.Get("/healthz", healthHandler)
-	r.Get("/", uiHandler.Home)
 	r.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.FS(staticFS))))
+
+	r.Group(func(r chi.Router) {
+		r.Get("/", uiHandler.Home)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authService.RedirectIfAuthenticated)
+		r.Get("/login", uiHandler.LoginGet)
+		r.With(authService.CSRFProtect).Post("/login", uiHandler.LoginPost)
+	})
+
+	r.Group(func(r chi.Router) {
+		r.Use(authService.RequireAuth)
+		r.With(authService.CSRFProtect).Post("/logout", uiHandler.LogoutPost)
+		r.Get("/dashboard", uiHandler.Dashboard)
+	})
 
 	return &Server{
 		cfg:    cfg,

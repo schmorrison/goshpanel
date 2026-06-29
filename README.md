@@ -78,4 +78,26 @@ deploy/                 systemd unit file
 
 ## Status
 
-Phase 0 (foundation) is complete: unified module, health check, styled homepage, embedded static assets, CI, and container packaging. Authentication and feature modules are next.
+Phase 1 adds session authentication, SQLite user storage, CSRF-protected login/logout, and an authenticated dashboard shell with sidebar navigation.
+
+### Default credentials
+
+On first startup with an empty database, GoshPanel creates a bootstrap admin user:
+
+- Username: `admin` (override with `auth.bootstrap_username`)
+- Password: value of `auth.bootstrap_password`, or a randomly generated password logged to stdout when left empty
+
+Set `auth.session_secret` in production. If omitted, an ephemeral secret is generated for the current process only.
+
+### Routes
+
+| Route | Access | Description |
+|-------|--------|-------------|
+| `GET /` | Public | Landing page (redirects to dashboard when signed in) |
+| `GET /login` | Public | Sign-in form |
+| `POST /login` | Public | Authenticate (CSRF protected) |
+| `POST /logout` | Authenticated | End session (CSRF protected) |
+| `GET /dashboard` | Authenticated | Module overview with sidebar |
+| `GET /healthz` | Public | Health check |
+
+Module paths (`/files`, `/database`, etc.) are linked in the sidebar and arrive in later phases.

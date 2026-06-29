@@ -1,0 +1,60 @@
+package layouts
+
+// Admin is the authenticated shell with sidebar navigation.
+templ Admin(title string, username string, csrfToken string, activeNav string, content templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en" class="h-full">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title }</title>
+			<meta name="csrf-token" content={ csrfToken }/>
+			<link rel="stylesheet" href="/static/css/app.css"/>
+			<script src="/static/js/htmx.min.js" defer></script>
+			<script>
+				document.addEventListener('htmx:configRequest', (event) => {
+					const token = document.querySelector('meta[name="csrf-token"]')?.content;
+					if (token) {
+						event.detail.headers['X-CSRF-Token'] = token;
+					}
+				});
+			</script>
+		</head>
+		<body class="min-h-full bg-slate-950 text-slate-100 antialiased">
+			<div class="flex min-h-full">
+				<aside class="hidden w-64 shrink-0 border-r border-slate-800 bg-slate-900/80 p-6 lg:block">
+					<div class="mb-8">
+						<p class="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">GoshPanel</p>
+						<p class="mt-2 text-sm text-slate-400">Signed in as { username }</p>
+					</div>
+					<nav class="space-y-1 text-sm">
+						@navItem("Dashboard", "/dashboard", "dashboard", activeNav)
+						@navItem("Files", "/files", "files", activeNav)
+						@navItem("Database", "/database", "database", activeNav)
+						@navItem("Domains", "/domains", "domains", activeNav)
+						@navItem("Email", "/email", "email", activeNav)
+						@navItem("Logging", "/logging", "logging", activeNav)
+						@navItem("Security", "/security", "security", activeNav)
+					</nav>
+					<form method="post" action="/logout" class="mt-8">
+						<input type="hidden" name="csrf_token" value={ csrfToken }/>
+						<button type="submit" class="w-full rounded-lg border border-slate-700 px-3 py-2 text-left text-sm text-slate-300 hover:bg-slate-800">
+							Sign out
+						</button>
+					</form>
+				</aside>
+				<main class="flex-1">
+					@content
+				</main>
+			</div>
+		</body>
+	</html>
+}
+
+templ navItem(label string, href string, slug string, activeNav string) {
+	if slug == activeNav {
+		<a href={ templ.URL(href) } class="block rounded-lg bg-emerald-500/10 px-3 py-2 font-medium text-emerald-300">{ label }</a>
+	} else {
+		<a href={ templ.URL(href) } class="block rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-800">{ label }</a>
+	}
+}
