@@ -1,0 +1,181 @@
+package pages
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/schmorrison/goshpanel/internal/files"
+	"github.com/schmorrison/goshpanel/internal/ui/layouts"
+)
+
+// FilesPage renders the file manager shell.
+templ FilesPage(username string, csrfToken string, currentPath string, entries []files.Entry, errorMessage string) {
+	@layouts.Admin("Files — GoshPanel", username, csrfToken, "files", filesContent(csrfToken, currentPath, entries, errorMessage))
+}
+
+// FilesList renders only the file table for HTMX swaps.
+templ FilesList(currentPath string, entries []files.Entry, csrfToken string, errorMessage string) {
+	<div id="files-panel">
+		@filesPanel(currentPath, entries, csrfToken, errorMessage)
+	</div>
+}
+
+templ filesContent(csrfToken string, currentPath string, entries []files.Entry, errorMessage string) {
+	<div class="px-6 py-8 lg:px-10">
+		<header class="mb-8">
+			<h1 class="text-3xl font-bold text-white">Files</h1>
+			<p class="mt-2 text-slate-400">Browse, upload, and delete files inside the configured sandbox.</p>
+		</header>
+		<div id="files-panel">
+			@filesPanel(currentPath, entries, csrfToken, errorMessage)
+		</div>
+	</div>
+}
+
+templ filesPanel(currentPath string, entries []files.Entry, csrfToken string, errorMessage string) {
+	<section class="rounded-2xl border border-slate-800 bg-slate-900/60">
+		<div class="border-b border-slate-800 px-5 py-4">
+			<nav class="flex flex-wrap items-center gap-2 text-sm text-slate-300">
+				<a
+					href="/files"
+					hx-get="/files/list"
+					hx-target="#files-panel"
+					hx-swap="outerHTML"
+					hx-push-url="/files"
+					class="rounded-lg px-2 py-1 hover:bg-slate-800"
+				>root</a>
+				for _, part := range pathParts(currentPath) {
+					<span class="text-slate-600">/</span>
+					<a
+						href={ templ.URL("/files?path=" + part.Path) }
+						hx-get={ "/files/list?path=" + part.Path }
+						hx-target="#files-panel"
+						hx-swap="outerHTML"
+						hx-push-url={ "/files?path=" + part.Path }
+						class="rounded-lg px-2 py-1 hover:bg-slate-800"
+					>{ part.Label }</a>
+				}
+			</nav>
+		</div>
+		if errorMessage != "" {
+			<div class="border-b border-slate-800 px-5 py-4 text-sm text-red-200">{ errorMessage }</div>
+		}
+		<div class="border-b border-slate-800 px-5 py-4">
+			<form
+				hx-post="/files/upload"
+				hx-encoding="multipart/form-data"
+				hx-target="#files-panel"
+				hx-swap="outerHTML"
+				class="flex flex-wrap items-end gap-3"
+			>
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<input type="hidden" name="path" value={ currentPath }/>
+				<div>
+					<label class="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">Upload file</label>
+					<input type="file" name="file" required class="block w-full text-sm text-slate-300 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-500 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-950 hover:file:bg-emerald-400"/>
+				</div>
+				<button type="submit" class="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400">Upload</button>
+			</form>
+		</div>
+		<div class="overflow-x-auto">
+			<table class="min-w-full text-left text-sm">
+				<thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
+					<tr>
+						<th class="px-5 py-3">Name</th>
+						<th class="px-5 py-3">Permissions</th>
+						<th class="px-5 py-3">Size</th>
+						<th class="px-5 py-3">Modified</th>
+						<th class="px-5 py-3 text-right">Actions</th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-slate-800">
+					if len(entries) == 0 {
+						<tr>
+							<td colspan="5" class="px-5 py-8 text-center text-slate-500">This directory is empty.</td>
+						</tr>
+					}
+					for _, entry := range entries {
+						@fileRow(currentPath, entry, csrfToken)
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+}
+
+templ fileRow(currentPath string, entry files.Entry, csrfToken string) {
+	<tr class="hover:bg-slate-900/70">
+		<td class="px-5 py-3">
+			if entry.IsDir {
+				<a
+					href={ templ.URL("/files?path=" + entry.Path) }
+					hx-get={ "/files/list?path=" + entry.Path }
+					hx-target="#files-panel"
+					hx-swap="outerHTML"
+					hx-push-url={ "/files?path=" + entry.Path }
+					class="font-medium text-emerald-300 hover:text-emerald-200"
+				>{ entry.Name }/</a>
+			} else {
+				<span class="text-slate-200">{ entry.Name }</span>
+			}
+		</td>
+		<td class="px-5 py-3 font-mono text-xs text-slate-400">{ entry.Mode }</td>
+		<td class="px-5 py-3 text-slate-400">{ formatSize(entry) }</td>
+		<td class="px-5 py-3 text-slate-400">{ entry.ModTime.Format("2006-01-02 15:04") }</td>
+		<td class="px-5 py-3 text-right">
+			<form
+				hx-post="/files/delete"
+				hx-target="#files-panel"
+				hx-swap="outerHTML"
+				hx-confirm={ "Delete " + entry.Name + "?" }
+				class="inline"
+			>
+				<input type="hidden" name="csrf_token" value={ csrfToken }/>
+				<input type="hidden" name="path" value={ entry.Path }/>
+				<input type="hidden" name="current_path" value={ currentPath }/>
+				<button type="submit" class="rounded-lg border border-red-500/40 px-3 py-1 text-xs text-red-200 hover:bg-red-500/10">Delete</button>
+			</form>
+		</td>
+	</tr>
+}
+
+type breadcrumbPart struct {
+	Label string
+	Path  string
+}
+
+func pathParts(currentPath string) []breadcrumbPart {
+	if currentPath == "" {
+		return nil
+	}
+
+	parts := strings.Split(currentPath, "/")
+	out := make([]breadcrumbPart, 0, len(parts))
+	var built string
+	for _, part := range parts {
+		if part == "" {
+			continue
+		}
+		if built == "" {
+			built = part
+		} else {
+			built += "/" + part
+		}
+		out = append(out, breadcrumbPart{Label: part, Path: built})
+	}
+	return out
+}
+
+func formatSize(entry files.Entry) string {
+	if entry.IsDir {
+		return "—"
+	}
+	switch {
+	case entry.Size < 1024:
+		return fmt.Sprintf("%d B", entry.Size)
+	case entry.Size < 1024*1024:
+		return fmt.Sprintf("%.1f KB", float64(entry.Size)/1024)
+	default:
+		return fmt.Sprintf("%.1f MB", float64(entry.Size)/(1024*1024))
+	}
+}
