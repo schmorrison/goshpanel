@@ -4,20 +4,9 @@ GoshPanel is a Linux web hosting control panel built almost entirely in Go. It a
 
 ## Stack
 
-- **Backend:** Go 1.22, chi router, viper configuration
+- **Backend:** Go 1.22, chi router, viper configuration, SQLite
 - **UI:** [templ](https://templ.guide/) server-rendered HTML, [HTMX](https://htmx.org/) for partial updates, [Tailwind CSS](https://tailwindcss.com/) for styling
 - **Deployment:** Single static binary with embedded assets
-
-## Planned modules
-
-- File manager
-- Database manager
-- Domain and DNS management
-- Email (via [go-guerrilla](https://github.com/flashmob/go-guerrilla))
-- Logging and monitoring
-- Security and certificates
-- Reverse proxy integration (via [Caddy](https://caddyserver.com/))
-- SSH access (via [Teleport](https://goteleport.com/))
 
 ## Quick start
 
@@ -32,18 +21,18 @@ GoshPanel is a Linux web hosting control panel built almost entirely in Go. It a
 make tidy
 npm install
 make build
-./bin/goshpanel
+GOSHPANEL_AUTH_BOOTSTRAP_PASSWORD=yourpassword ./bin/goshpanel
 ```
 
-Open http://localhost:4674 — the homepage and `GET /healthz` should respond.
+Open http://localhost:4674/login and sign in with `admin` / `yourpassword`.
 
 ### Development
 
 ```bash
 npm install
-make generate   # regenerate templ files after editing .templ
-make css-watch  # rebuild Tailwind CSS on change (separate terminal)
-make dev        # run the server
+make generate
+make css-watch
+make dev
 ```
 
 ### Configuration
@@ -55,21 +44,36 @@ sudo mkdir -p /etc/goshpanel
 sudo cp configs/config.example.yaml /etc/goshpanel/config.yaml
 ```
 
-Environment variables override file settings using the `GOSHPANEL_` prefix (for example `GOSHPANEL_SERVER_PORT=8080`).
+Key settings:
 
-### Docker
+- `database.path` — SQLite database location
+- `auth.session_secret` — session signing secret (required in production)
+- `auth.bootstrap_username` / `auth.bootstrap_password` — first-run admin user
+- `files.root` — sandbox root for the file manager (default `data/workspace`)
 
-```bash
-docker build -t goshpanel .
-docker run --rm -p 4674:4674 goshpanel
-```
+Environment variables use the `GOSHPANEL_` prefix, for example `GOSHPANEL_FILES_ROOT=/srv/sites`.
+
+## Modules
+
+| Module | Route | Status |
+|--------|-------|--------|
+| Dashboard | `/dashboard` | Available |
+| Files | `/files` | Available — browse, upload, delete within sandbox |
+| Database | `/database` | Planned |
+| Domains | `/domains` | Planned |
+| Email | `/email` | Planned |
+| Logging | `/logging` | Planned |
+| Security | `/security` | Planned |
 
 ## Project layout
 
 ```
 cmd/goshpanel/          Application entry point
+internal/auth/          Sessions, login, CSRF
 internal/config/        Configuration loading
+internal/files/         Sandboxed file manager service
 internal/server/        HTTP server and routing
+internal/store/         SQLite repositories and migrations
 internal/ui/            templ pages and handlers
 web/static/             CSS and JavaScript assets (embedded at build time)
 configs/                Example configuration
@@ -78,26 +82,4 @@ deploy/                 systemd unit file
 
 ## Status
 
-Phase 1 adds session authentication, SQLite user storage, CSRF-protected login/logout, and an authenticated dashboard shell with sidebar navigation.
-
-### Default credentials
-
-On first startup with an empty database, GoshPanel creates a bootstrap admin user:
-
-- Username: `admin` (override with `auth.bootstrap_username`)
-- Password: value of `auth.bootstrap_password`, or a randomly generated password logged to stdout when left empty
-
-Set `auth.session_secret` in production. If omitted, an ephemeral secret is generated for the current process only.
-
-### Routes
-
-| Route | Access | Description |
-|-------|--------|-------------|
-| `GET /` | Public | Landing page (redirects to dashboard when signed in) |
-| `GET /login` | Public | Sign-in form |
-| `POST /login` | Public | Authenticate (CSRF protected) |
-| `POST /logout` | Authenticated | End session (CSRF protected) |
-| `GET /dashboard` | Authenticated | Module overview with sidebar |
-| `GET /healthz` | Public | Health check |
-
-Module paths (`/files`, `/database`, etc.) are linked in the sidebar and arrive in later phases.
+Phase 2 adds the file manager: sandboxed listing, HTMX navigation, upload/delete, permission display, and SQLite audit logging.

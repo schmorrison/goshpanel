@@ -26,6 +26,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.Auth.BootstrapUsername != defaultBootstrapUser {
 		t.Errorf("BootstrapUsername = %q, want %q", cfg.Auth.BootstrapUsername, defaultBootstrapUser)
 	}
+	if cfg.Files.Root != defaultFilesRoot {
+		t.Errorf("Files.Root = %q, want %q", cfg.Files.Root, defaultFilesRoot)
+	}
 }
 
 func TestLoadFromEnvironment(t *testing.T) {

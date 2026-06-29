@@ -63,20 +63,26 @@ templ dashboardContent() {
 			<p class="mt-2 text-slate-400">Choose a module to get started. Feature pages arrive in upcoming phases.</p>
 		</header>
 		<section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-			@moduleCard("Files", "Browse and manage server files.", "files")
-			@moduleCard("Database", "Inspect schemas and run queries.", "database")
-			@moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains")
-			@moduleCard("Email", "Configure mail accounts and routing.", "email")
-			@moduleCard("Logging", "Tail application and system logs.", "logging")
-			@moduleCard("Security", "Certificates, access, and hardening.", "security")
+			@moduleCard("Files", "Browse and manage server files.", "files", true)
+			@moduleCard("Database", "Inspect schemas and run queries.", "database", false)
+			@moduleCard("Domains", "Manage DNS records and virtual hosts.", "domains", false)
+			@moduleCard("Email", "Configure mail accounts and routing.", "email", false)
+			@moduleCard("Logging", "Tail application and system logs.", "logging", false)
+			@moduleCard("Security", "Certificates, access, and hardening.", "security", false)
 		</section>
 	</div>
 }
 
-templ moduleCard(title string, description string, slug string) {
+templ moduleCard(title string, description string, slug string, enabled bool) {
 	<article class="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-black/20">
 		<h2 class="text-lg font-semibold text-white">{ title }</h2>
 		<p class="mt-2 text-sm leading-6 text-slate-400">{ description }</p>
-		<p class="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">/{ slug }/ — coming soon</p>
+		if enabled {
+			<a href={ templ.URL("/" + slug) } class="mt-4 inline-flex text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+				Open module →
+			</a>
+		} else {
+			<p class="mt-4 text-xs font-medium uppercase tracking-wide text-slate-500">/{ slug }/ — coming soon</p>
+		}
 	</article>
 }

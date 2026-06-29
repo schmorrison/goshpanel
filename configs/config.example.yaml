@@ -9,3 +9,6 @@ auth:
   session_secret: change-me-in-production
   bootstrap_username: admin
   bootstrap_password: ""
+
+files:
+  root: data/workspace

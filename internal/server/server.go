@@ -59,6 +59,10 @@ func New(cfg config.Config, logger *slog.Logger, authService *auth.Service, uiHa
 		r.Use(authService.RequireAuth)
 		r.With(authService.CSRFProtect).Post("/logout", uiHandler.LogoutPost)
 		r.Get("/dashboard", uiHandler.Dashboard)
+		r.Get("/files", uiHandler.Files)
+		r.Get("/files/list", uiHandler.FilesList)
+		r.With(authService.CSRFProtect).Post("/files/upload", uiHandler.FilesUpload)
+		r.With(authService.CSRFProtect).Post("/files/delete", uiHandler.FilesDelete)
 	})
 
 	return &Server{

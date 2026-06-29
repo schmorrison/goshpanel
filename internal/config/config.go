@@ -16,6 +16,7 @@ const (
 	defaultPort          = 4674
 	defaultDatabasePath  = "data/goshpanel.db"
 	defaultBootstrapUser = "admin"
+	defaultFilesRoot     = "data/workspace"
 )
 
 // Config holds GoshPanel runtime settings.
@@ -23,6 +24,7 @@ type Config struct {
 	Server   ServerConfig   `mapstructure:"server"`
 	Database DatabaseConfig `mapstructure:"database"`
 	Auth     AuthConfig     `mapstructure:"auth"`
+	Files    FilesConfig    `mapstructure:"files"`
 }
 
 // ServerConfig controls the HTTP listener.
@@ -43,6 +45,11 @@ type AuthConfig struct {
 	BootstrapPassword string `mapstructure:"bootstrap_password"`
 }
 
+// FilesConfig controls the sandboxed file manager.
+type FilesConfig struct {
+	Root string `mapstructure:"root"`
+}
+
 // Addr returns the host:port listen address.
 func (c Config) Addr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
@@ -56,6 +63,7 @@ func Load() (Config, error) {
 	v.SetDefault("server.port", defaultPort)
 	v.SetDefault("database.path", defaultDatabasePath)
 	v.SetDefault("auth.bootstrap_username", defaultBootstrapUser)
+	v.SetDefault("files.root", defaultFilesRoot)
 
 	_ = v.BindEnv("server.host", "GOSHPANEL_SERVER_HOST")
 	_ = v.BindEnv("server.port", "GOSHPANEL_SERVER_PORT")
@@ -63,6 +71,7 @@ func Load() (Config, error) {
 	_ = v.BindEnv("auth.session_secret", "GOSHPANEL_AUTH_SESSION_SECRET")
 	_ = v.BindEnv("auth.bootstrap_username", "GOSHPANEL_AUTH_BOOTSTRAP_USERNAME")
 	_ = v.BindEnv("auth.bootstrap_password", "GOSHPANEL_AUTH_BOOTSTRAP_PASSWORD")
+	_ = v.BindEnv("files.root", "GOSHPANEL_FILES_ROOT")
 
 	v.SetEnvPrefix("GOSHPANEL")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

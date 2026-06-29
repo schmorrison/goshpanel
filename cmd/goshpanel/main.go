@@ -8,6 +8,7 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/files"
 	"github.com/schmorrison/goshpanel/internal/server"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/ui"
@@ -26,6 +27,10 @@ func main() {
 		logger.Error("failed to create database directory", "error", err)
 		os.Exit(1)
 	}
+	if err := os.MkdirAll(cfg.Files.Root, 0o755); err != nil {
+		logger.Error("failed to create files sandbox directory", "error", err)
+		os.Exit(1)
+	}
 
 	db, err := store.Open(cfg.Database.Path)
 	if err != nil {
@@ -36,6 +41,7 @@ func main() {
 
 	users := store.NewUserRepository(db)
 	sessions := store.NewSessionStore(db)
+	audit := store.NewAuditRepository(db)
 
 	secret, generated, err := cfg.SessionSecret()
 	if err != nil {
@@ -57,7 +63,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	uiHandler := ui.NewHandler(authService)
+	filesService, err := files.NewService(cfg.Files.Root, audit)
+	if err != nil {
+		logger.Error("failed to initialize file manager", "error", err)
+		os.Exit(1)
+	}
+
+	uiHandler := ui.NewHandler(authService, filesService)
 	srv := server.New(cfg, logger, authService, uiHandler)
 	if err := srv.Run(); err != nil {
 		logger.Error("server stopped", "error", err)

@@ -13,6 +13,7 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/files"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/ui"
 	"golang.org/x/crypto/bcrypt"
@@ -101,6 +102,61 @@ func TestLoginAndDashboardFlow(t *testing.T) {
 	}
 }
 
+func TestFilesRouteRequiresAuth(t *testing.T) {
+	srv := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/files", nil)
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("unauthenticated files status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+}
+
+func TestAuthenticatedFilesPage(t *testing.T) {
+	srv := newTestServer(t)
+	cookies := login(t, srv)
+
+	req := httptest.NewRequest(http.MethodGet, "/files", nil)
+	for _, cookie := range cookies {
+		req.AddCookie(cookie)
+	}
+	rec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("files status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !strings.Contains(rec.Body.String(), "This directory is empty") {
+		t.Fatalf("files body missing empty directory message")
+	}
+}
+
+func login(t *testing.T, srv *Server) []*http.Cookie {
+	t.Helper()
+
+	loginPageReq := httptest.NewRequest(http.MethodGet, "/login", nil)
+	loginPageRec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(loginPageRec, loginPageReq)
+
+	csrfToken := extractCSRFToken(t, loginPageRec.Body.String())
+	form := url.Values{}
+	form.Set("csrf_token", csrfToken)
+	form.Set("username", "admin")
+	form.Set("password", "secret-pass")
+
+	loginReq := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(form.Encode()))
+	loginReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	for _, cookie := range loginPageRec.Result().Cookies() {
+		loginReq.AddCookie(cookie)
+	}
+	loginRec := httptest.NewRecorder()
+	srv.http.Handler.ServeHTTP(loginRec, loginReq)
+	if loginRec.Code != http.StatusSeeOther {
+		t.Fatalf("login status = %d, want %d", loginRec.Code, http.StatusSeeOther)
+	}
+	return loginRec.Result().Cookies()
+}
+
 func newTestServer(t *testing.T) *Server {
 	t.Helper()
 
@@ -121,7 +177,12 @@ func newTestServer(t *testing.T) *Server {
 		t.Fatalf("auth.New() error = %v", err)
 	}
 
-	uiHandler := ui.NewHandler(authService)
+	filesService, err := files.NewService(t.TempDir(), store.NewAuditRepository(db))
+	if err != nil {
+		t.Fatalf("files.NewService() error = %v", err)
+	}
+
+	uiHandler := ui.NewHandler(authService, filesService)
 	return New(config.Config{}, slog.New(slog.NewTextHandler(io.Discard, nil)), authService, uiHandler)
 }
 
