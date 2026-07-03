@@ -147,6 +147,45 @@ func TestMailboxesForwardersCronDatabases(t *testing.T) {
 	}
 }
 
+func TestFunctionsDockerSystemdOrchestrator(t *testing.T) {
+	s := openTestStore(t)
+
+	fn, err := s.CreateMicroFunction("ping", "health", "echo pong", "tok", 15)
+	if err != nil {
+		t.Fatalf("CreateMicroFunction: %v", err)
+	}
+	got, err := s.MicroFunctionByName("ping")
+	if err != nil || got.ID != fn.ID {
+		t.Fatalf("MicroFunctionByName: %v", err)
+	}
+
+	stack, err := s.CreateDockerStack("web", "services:\n  web:\n    image: nginx\n")
+	if err != nil {
+		t.Fatalf("CreateDockerStack: %v", err)
+	}
+	stacks, _ := s.DockerStacks()
+	if len(stacks) != 1 || stacks[0].ID != stack.ID {
+		t.Errorf("DockerStacks = %+v", stacks)
+	}
+
+	unit, err := s.CreateSystemdUnit("demo", "[Service]\nExecStart=/bin/true\n", true)
+	if err != nil {
+		t.Fatalf("CreateSystemdUnit: %v", err)
+	}
+	units, _ := s.SystemdUnits()
+	if len(units) != 1 || units[0].ID != unit.ID {
+		t.Errorf("SystemdUnits = %+v", units)
+	}
+
+	if err := s.SetOrchestratorStatus("caddy", "/tmp/Caddyfile", "", now()); err != nil {
+		t.Fatalf("SetOrchestratorStatus: %v", err)
+	}
+	statuses, err := s.OrchestratorStatuses()
+	if err != nil || len(statuses) != 1 || statuses[0].Component != "caddy" {
+		t.Fatalf("OrchestratorStatuses: %v %+v", err, statuses)
+	}
+}
+
 func TestAuditAndIPRules(t *testing.T) {
 	s := openTestStore(t)
 

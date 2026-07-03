@@ -49,6 +49,7 @@ func (s *Server) handleMailboxCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "email.mailbox.create", addr)
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/email", "Mailbox created: "+addr)
 }
 
@@ -63,6 +64,7 @@ func (s *Server) handleMailboxDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "email.mailbox.delete", strconv.FormatInt(id, 10))
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/email", "Mailbox removed")
 }
 
@@ -81,6 +83,7 @@ func (s *Server) handleForwarderCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "email.forwarder.create", from+" -> "+to)
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/email", "Forwarder created")
 }
 
@@ -95,6 +98,7 @@ func (s *Server) handleForwarderDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "email.forwarder.delete", strconv.FormatInt(id, 10))
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/email", "Forwarder removed")
 }
 

@@ -24,6 +24,9 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Logs | `/logs` | Tail viewer over an allowlist of log files |
 | Terminal | `/terminal` | One-shot `bash -c` command runner with timeout |
 | Security | `/security` | Panel users & roles, password changes, IP blocker, audit log |
+| Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
+| Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
+| Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
 
 ## Quick start
 
@@ -50,6 +53,14 @@ Everything is an environment variable:
 | `GOSHPANEL_SESSION_TTL_MINUTES` | `720` | Login session lifetime |
 | `GOSHPANEL_LOG_SOURCES` | — | Comma-separated allowlist of log files for the viewer |
 | `GOSHPANEL_COMMAND_RUNNER` | `true` | Enable/disable the terminal module |
+| `GOSHPANEL_ORCHESTRATOR` | `true` | Enable live config apply (Caddy/CoreDNS/maddy/systemd) |
+| `GOSHPANEL_AUTO_APPLY` | `false` | Auto-reload daemons after domain/DNS/email changes |
+| `GOSHPANEL_CADDY_CONFIG` | `data/generated/Caddyfile` | Caddyfile output path |
+| `GOSHPANEL_COREDNS_DIR` | `data/generated/coredns` | CoreDNS config directory |
+| `GOSHPANEL_MADDY_CONFIG` | `data/generated/maddy.conf` | maddy config output path |
+| `GOSHPANEL_SYSTEMD_UNIT_DIR` | `data/generated/systemd` | systemd unit file directory |
+| `GOSHPANEL_DOCKER` | `true` | Enable Docker module (requires `docker` CLI) |
+| `GOSHPANEL_FUNCTIONS` | `true` | Enable micro functions module |
 
 ## Development
 
@@ -78,5 +89,8 @@ internal/security/   IP blocker (net/netip)
 internal/store/      SQLite persistence (modernc.org/sqlite)
 internal/system/     /proc metrics
 internal/web/        HTTP server, handlers, templates, CSS
+internal/orchestrator/ Live apply for Caddy, CoreDNS, maddy, systemd
+internal/docker/       Docker CLI wrapper (containers, compose)
+internal/fn/           HTTP-triggered micro functions
 docs/FEATURES.md     cPanel feature-parity matrix
 ```

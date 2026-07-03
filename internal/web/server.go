@@ -16,8 +16,11 @@ import (
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/backups"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/docker"
 	"github.com/schmorrison/goshpanel/internal/files"
+	"github.com/schmorrison/goshpanel/internal/fn"
 	"github.com/schmorrison/goshpanel/internal/logs"
+	"github.com/schmorrison/goshpanel/internal/orchestrator"
 	"github.com/schmorrison/goshpanel/internal/runner"
 	"github.com/schmorrison/goshpanel/internal/security"
 	"github.com/schmorrison/goshpanel/internal/store"
@@ -41,6 +44,9 @@ type Server struct {
 	logs    *logs.Service
 	blocker *security.Blocker
 	runner  *runner.Service
+	orch    *orchestrator.Service
+	docker  *docker.Service
+	fns     *fn.Service
 
 	tmpl *template.Template
 	mux  *http.ServeMux
@@ -65,6 +71,12 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 		"humanKB":    system.HumanKB,
 		"humanBytes": func(n int64) string { return system.HumanKB(uint64((n + 1023) / 1024)) },
 		"timefmt":    func(t time.Time) string { return t.Format("2006-01-02 15:04") },
+		"timefmtPtr": func(t *time.Time) string {
+			if t == nil {
+				return "—"
+			}
+			return t.Format("2006-01-02 15:04")
+		},
 		"durfmt":     formatDuration,
 	}
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(templateFS, "templates/*.html")
@@ -82,8 +94,28 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 		logs:    logs.New(cfg.LogSources),
 		blocker: blocker,
 		runner:  runner.New(fileSvc.Root(), 60*time.Second, cfg.CommandRunnerEnabled),
-		tmpl:    tmpl,
-		mux:     http.NewServeMux(),
+		orch: orchestrator.New(st, orchestrator.Paths{
+			CaddyConfig: cfg.CaddyConfigPath,
+			CoreDNSDir:  cfg.CoreDNSConfigDir,
+			MaddyConfig: cfg.MaddyConfigPath,
+			SystemdDir:  cfg.SystemdUnitDir,
+		}),
+		tmpl: tmpl,
+		mux:  http.NewServeMux(),
+	}
+	if cfg.DockerEnabled {
+		if d, err := docker.New(); err == nil {
+			s.docker = d
+		} else {
+			logger.Info("docker module unavailable", "err", err)
+		}
+	}
+	if cfg.FunctionsEnabled {
+		fnSvc, err := fn.New(st, filepath.Join(cfg.DataDir, "functions"))
+		if err != nil {
+			return nil, err
+		}
+		s.fns = fnSvc
 	}
 
 	if err := s.auth.Bootstrap(cfg.BootstrapUser, cfg.BootstrapPassword); err != nil {
@@ -155,6 +187,32 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /terminal", s.requireAuth(s.handleTerminalPage))
 	s.mux.HandleFunc("POST /terminal/run", s.requireAuth(s.handleTerminalRun))
+
+	s.mux.HandleFunc("GET /orchestrator", s.requireAuth(s.handleOrchestratorPage))
+	s.mux.HandleFunc("POST /orchestrator/apply", s.requireAuth(s.handleOrchestratorApply))
+	s.mux.HandleFunc("POST /orchestrator/apply/{component}", s.requireAuth(s.handleOrchestratorApplyOne))
+	s.mux.HandleFunc("POST /orchestrator/systemd/create", s.requireAuth(s.handleSystemdCreate))
+	s.mux.HandleFunc("POST /orchestrator/systemd/delete", s.requireAuth(s.handleSystemdDelete))
+
+	s.mux.HandleFunc("GET /docker", s.requireAuth(s.handleDockerPage))
+	s.mux.HandleFunc("POST /docker/run", s.requireAuth(s.handleDockerRun))
+	s.mux.HandleFunc("POST /docker/{action}", s.requireAuth(s.handleDockerAction))
+	s.mux.HandleFunc("GET /docker/logs", s.requireAuth(s.handleDockerLogs))
+	s.mux.HandleFunc("POST /docker/stacks/create", s.requireAuth(s.handleDockerStackCreate))
+	s.mux.HandleFunc("POST /docker/stacks/up", s.requireAuth(s.handleDockerStackUp))
+	s.mux.HandleFunc("POST /docker/stacks/down", s.requireAuth(s.handleDockerStackDown))
+	s.mux.HandleFunc("POST /docker/stacks/delete", s.requireAuth(s.handleDockerStackDelete))
+
+	s.mux.HandleFunc("GET /functions", s.requireAuth(s.handleFunctionsPage))
+	s.mux.HandleFunc("POST /functions/create", s.requireAuth(s.handleFunctionCreate))
+	s.mux.HandleFunc("GET /functions/{id}/edit", s.requireAuth(s.handleFunctionEditPage))
+	s.mux.HandleFunc("POST /functions/{id}/save", s.requireAuth(s.handleFunctionSave))
+	s.mux.HandleFunc("POST /functions/{id}/delete", s.requireAuth(s.handleFunctionDelete))
+	s.mux.HandleFunc("POST /functions/{id}/invoke", s.requireAuth(s.handleFunctionInvokePanel))
+
+	// Public function invoke — token auth, no panel session required.
+	s.mux.HandleFunc("GET /fn/{name}", s.handleFunctionInvokePublic)
+	s.mux.HandleFunc("POST /fn/{name}", s.handleFunctionInvokePublic)
 }
 
 // Handler returns the fully wrapped HTTP handler.

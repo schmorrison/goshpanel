@@ -51,6 +51,7 @@ func (s *Server) handleDomainCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "domains.create", name)
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/domains", "Added domain "+name)
 }
 
@@ -65,6 +66,7 @@ func (s *Server) handleDomainDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "domains.delete", strconv.FormatInt(id, 10))
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/domains", "Domain removed")
 }
 
@@ -125,6 +127,7 @@ func (s *Server) handleDNSCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "dns.create", rec.Type+" "+rec.Name)
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/domains", "Record added")
 }
 
@@ -139,5 +142,6 @@ func (s *Server) handleDNSDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.audit(r, "dns.delete", strconv.FormatInt(id, 10))
+	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/domains", "Record removed")
 }

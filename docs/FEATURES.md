@@ -83,6 +83,9 @@ Legend:
 | ModSecurity (WAF) | Go WAF: Coraza | Planned | Coraza is a pure-Go OWASP CRS engine |
 | Two-Factor Authentication | Pure Go (TOTP) | Planned | |
 | Terminal | Process call to `bash` | **Implemented** | Request/response command runner with timeout; PTY/WebSocket upgrade planned |
+| Orchestrator (live apply) | Process calls | **Implemented** | Auto-write & reload Caddy, CoreDNS, maddy; systemd unit management |
+| Docker | Process calls (`docker` CLI) | **Implemented** | Containers, images, logs, run, compose stack up/down |
+| Micro Functions | Pure Go + bash | **Implemented** | HTTP-triggered bash scripts at `/fn/{name}?token=...` |
 
 ## Advanced
 
@@ -105,7 +108,7 @@ Legend:
 
 ## Summary
 
-Implemented today: **10 of 10 core modules** — Dashboard, Files, Domains & DNS, Databases, Email, Cron, Backups, Logs, Terminal, Security (auth, users, IP blocker, audit).
+Implemented today: **13 core modules** — Dashboard, Files, Domains & DNS, Databases, Email, Cron, Backups, Logs, Terminal, Security, **Orchestrator**, **Docker**, **Micro Functions**.
 
 Everything cPanel does is achievable from Go, in three tiers:
 

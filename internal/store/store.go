@@ -85,6 +85,35 @@ CREATE TABLE IF NOT EXISTS ip_rules (
 	comment    TEXT NOT NULL DEFAULT '',
 	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS micro_functions (
+	id          INTEGER PRIMARY KEY AUTOINCREMENT,
+	name        TEXT NOT NULL UNIQUE,
+	description TEXT NOT NULL DEFAULT '',
+	script      TEXT NOT NULL,
+	token       TEXT NOT NULL DEFAULT '',
+	enabled     INTEGER NOT NULL DEFAULT 1,
+	timeout_sec INTEGER NOT NULL DEFAULT 30,
+	created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS docker_stacks (
+	id           INTEGER PRIMARY KEY AUTOINCREMENT,
+	name         TEXT NOT NULL UNIQUE,
+	compose_yaml TEXT NOT NULL,
+	created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS systemd_units (
+	id           INTEGER PRIMARY KEY AUTOINCREMENT,
+	name         TEXT NOT NULL UNIQUE,
+	unit_content TEXT NOT NULL,
+	enabled      INTEGER NOT NULL DEFAULT 1,
+	created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS orchestrator_status (
+	component      TEXT PRIMARY KEY,
+	config_path    TEXT NOT NULL DEFAULT '',
+	last_applied   TIMESTAMP,
+	last_error     TEXT NOT NULL DEFAULT ''
+);
 `
 
 // Store wraps the SQLite database shared by all panel modules.

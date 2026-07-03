@@ -29,6 +29,21 @@ type Config struct {
 	SessionTTLMinutes int
 	// CommandRunnerEnabled toggles the /terminal command runner module.
 	CommandRunnerEnabled bool
+
+	// Orchestrator paths — configs are written here and reloaded via process calls.
+	OrchestratorEnabled bool
+	CaddyConfigPath     string
+	CoreDNSConfigDir    string
+	MaddyConfigPath     string
+	SystemdUnitDir      string
+	// AutoApply triggers orchestrator reload after domain/DNS/email changes.
+	AutoApply bool
+
+	// DockerEnabled toggles the Docker management module (uses docker CLI).
+	DockerEnabled bool
+
+	// FunctionsEnabled toggles HTTP-triggered micro functions.
+	FunctionsEnabled bool
 }
 
 // Load reads configuration from the given environment lookup function.
@@ -71,7 +86,31 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 	}
 	cfg.CommandRunnerEnabled = b
 
+	cfg.OrchestratorEnabled = parseBool(get("ORCHESTRATOR", "true"), "ORCHESTRATOR", &err)
+	cfg.CaddyConfigPath = get("CADDY_CONFIG", filepath.Join(cfg.DataDir, "generated", "Caddyfile"))
+	cfg.CoreDNSConfigDir = get("COREDNS_DIR", filepath.Join(cfg.DataDir, "generated", "coredns"))
+	cfg.MaddyConfigPath = get("MADDY_CONFIG", filepath.Join(cfg.DataDir, "generated", "maddy.conf"))
+	cfg.SystemdUnitDir = get("SYSTEMD_UNIT_DIR", filepath.Join(cfg.DataDir, "generated", "systemd"))
+	cfg.AutoApply = parseBool(get("AUTO_APPLY", "false"), "AUTO_APPLY", &err)
+
+	cfg.DockerEnabled = parseBool(get("DOCKER", "true"), "DOCKER", &err)
+	cfg.FunctionsEnabled = parseBool(get("FUNCTIONS", "true"), "FUNCTIONS", &err)
+
+	if err != nil {
+		return Config{}, err
+	}
 	return cfg, nil
+}
+
+func parseBool(raw, key string, err *error) bool {
+	if *err != nil {
+		return false
+	}
+	b, e := strconv.ParseBool(raw)
+	if e != nil {
+		*err = fmt.Errorf("invalid GOSHPANEL_%s %q", key, raw)
+	}
+	return b
 }
 
 // LoadFromEnv is a convenience wrapper over Load(os.LookupEnv).

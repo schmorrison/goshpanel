@@ -23,6 +23,15 @@ func TestLoadDefaults(t *testing.T) {
 	if !cfg.CommandRunnerEnabled {
 		t.Error("CommandRunnerEnabled should default to true")
 	}
+	if !cfg.OrchestratorEnabled {
+		t.Error("OrchestratorEnabled should default to true")
+	}
+	if !cfg.DockerEnabled {
+		t.Error("DockerEnabled should default to true")
+	}
+	if !cfg.FunctionsEnabled {
+		t.Error("FunctionsEnabled should default to true")
+	}
 }
 
 func TestLoadOverrides(t *testing.T) {

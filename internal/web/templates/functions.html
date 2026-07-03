@@ -1,0 +1,45 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<form class="card" method="post" action="/functions/create">
+  <h2>Create micro function</h2>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <div class="form-row">
+    <input type="text" name="name" placeholder="hello-world" required pattern="[a-z][a-z0-9_-]{0,63}">
+    <input type="number" name="timeout_sec" placeholder="Timeout (sec)" value="30" min="1" max="300">
+    <input type="text" name="description" placeholder="description (optional)" class="grow">
+    <button type="submit" class="btn btn-primary">Create</button>
+  </div>
+  <label>Script body (bash — shebang added automatically)
+    <textarea name="script" class="editor editor-sm" rows="6" placeholder="echo &quot;Hello from GoshPanel&quot;&#10;date -u" required></textarea>
+  </label>
+  <p class="muted">Functions are invoked at <code>/fn/{name}?token=...</code> or from the panel. Names must match <code>[a-z][a-z0-9_-]{0,63}</code>.</p>
+</form>
+
+<div class="card">
+  <h2>Functions</h2>
+  <table class="list">
+    <thead><tr><th>Name</th><th>Description</th><th>Timeout</th><th>Enabled</th><th class="actions-col">Actions</th></tr></thead>
+    <tbody>
+    {{range .Functions}}
+    <tr>
+      <td><code>{{.Name}}</code></td>
+      <td>{{.Description}}</td>
+      <td>{{.TimeoutSec}}s</td>
+      <td>{{if .Enabled}}yes{{else}}no{{end}}</td>
+      <td class="actions">
+        <a class="btn btn-sm" href="/functions/{{.ID}}/edit">Edit</a>
+        <form method="post" action="/functions/{{.ID}}/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="5" class="muted">No functions yet. Create one above — ideal for webhooks, health checks, and small automation tasks.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}

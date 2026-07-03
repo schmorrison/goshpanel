@@ -27,6 +27,13 @@ func newTestServer(t *testing.T) http.Handler {
 		BootstrapPassword:    "testpassword",
 		SessionTTLMinutes:    60,
 		CommandRunnerEnabled: true,
+		OrchestratorEnabled:  true,
+		CaddyConfigPath:      filepath.Join(dir, "Caddyfile"),
+		CoreDNSConfigDir:     filepath.Join(dir, "coredns"),
+		MaddyConfigPath:      filepath.Join(dir, "maddy.conf"),
+		SystemdUnitDir:       filepath.Join(dir, "systemd"),
+		FunctionsEnabled:     true,
+		DockerEnabled:        true,
 	}
 	st, err := store.Open(filepath.Join(dir, "test.db"))
 	if err != nil {
@@ -105,16 +112,19 @@ func TestAuthenticatedPagesRender(t *testing.T) {
 	cookie, _ := login(t, h)
 
 	pages := map[string]string{
-		"/":          "Server information",
-		"/files":     "File Manager",
-		"/domains":   "Add domain",
-		"/databases": "Add connection",
-		"/email":     "Create mailbox",
-		"/cron":      "Add cron job",
-		"/backups":   "Create backup now",
-		"/logs":      "Log sources",
-		"/security":  "Panel users",
-		"/terminal":  "Run command",
+		"/":              "Server information",
+		"/files":         "File Manager",
+		"/domains":       "Add domain",
+		"/databases":     "Add connection",
+		"/email":         "Create mailbox",
+		"/cron":          "Add cron job",
+		"/backups":       "Create backup now",
+		"/logs":          "Log sources",
+		"/security":      "Panel users",
+		"/terminal":      "Run command",
+		"/orchestrator":  "Live orchestration",
+		"/docker":        "Docker",
+		"/functions":     "Create micro function",
 	}
 	for path, want := range pages {
 		req := httptest.NewRequest("GET", path, nil)
@@ -231,6 +241,61 @@ func TestIPBlockerBlocksPanel(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Errorf("unblocked IP got %d, want 200", rec.Code)
+	}
+}
+
+func TestFunctionPublicInvoke(t *testing.T) {
+	h := newTestServer(t)
+	cookie, csrf := login(t, h)
+
+	form := url.Values{
+		"name": {"echo-test"}, "description": {"demo"},
+		"script": {"echo public-invoke-ok"}, "timeout_sec": {"10"},
+		"csrf_token": {csrf},
+	}
+	req := httptest.NewRequest("POST", "/functions/create", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.AddCookie(cookie)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("create function: %d", rec.Code)
+	}
+
+	req = httptest.NewRequest("GET", "/functions", nil)
+	req.AddCookie(cookie)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	body := rec.Body.String()
+	if !strings.Contains(body, "echo-test") {
+		t.Fatal("function not listed")
+	}
+
+	req = httptest.NewRequest("GET", "/functions/1/edit", nil)
+	req.AddCookie(cookie)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	invokeMarker := "/fn/echo-test?token="
+	if !strings.Contains(rec.Body.String(), invokeMarker) {
+		t.Fatal("invoke URL missing")
+	}
+	rest := rec.Body.String()[strings.Index(rec.Body.String(), invokeMarker)+len(invokeMarker):]
+	raw, _, _ := strings.Cut(rest, "\n")
+	raw, _, _ = strings.Cut(raw, "<")
+	token := strings.TrimSpace(raw)
+
+	req = httptest.NewRequest("GET", "/fn/echo-test?token="+token, nil)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "public-invoke-ok") {
+		t.Errorf("public invoke: code=%d body=%q", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest("GET", "/fn/echo-test?token=wrong", nil)
+	rec = httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Errorf("bad token: code=%d", rec.Code)
 	}
 }
 
