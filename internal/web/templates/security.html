@@ -1,0 +1,133 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{$me := .User}}
+{{with .Data}}
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Panel users</h2>
+    <table class="list">
+      <thead><tr><th>Username</th><th>Role</th><th>Files / SFTP dir</th><th>Created</th><th class="actions-col"></th></tr></thead>
+      <tbody>
+      {{range .Users}}
+      <tr>
+        <td>{{.Username}}</td>
+        <td><code>{{.Role}}</code></td>
+        <td>
+          {{if eq $me.Role "admin"}}
+          <form class="form-row" method="post" action="/security/users/files-subdir">
+            <input type="hidden" name="csrf_token" value="{{$csrf}}">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <input type="text" name="files_subdir" value="{{if .FilesSubdir}}{{.FilesSubdir}}{{else}}{{.Username}}{{end}}" placeholder="subdir under files root" style="max-width:12rem">
+            <button type="submit" class="btn btn-sm">Save</button>
+          </form>
+          {{else}}
+          <code>{{if .FilesSubdir}}{{.FilesSubdir}}{{else}}{{.Username}}{{end}}</code>
+          {{end}}
+        </td>
+        <td>{{timefmt .CreatedAt}}</td>
+        <td class="actions">
+          {{if and (eq $me.Role "admin") (ne .ID $me.ID)}}
+          <form method="post" action="/security/users/delete">
+            <input type="hidden" name="csrf_token" value="{{$csrf}}">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+    {{if eq $me.Role "admin"}}
+    <form class="form-row" method="post" action="/security/users/create">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="username" placeholder="username" required>
+      <input type="password" name="password" placeholder="password (8+ chars)" minlength="8" required>
+      <select name="role"><option value="user">user</option><option value="admin">admin</option></select>
+      <button type="submit" class="btn">Add user</button>
+    </form>
+    {{end}}
+    <h2>Change my password</h2>
+    <form class="form-row" method="post" action="/security/password">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="password" name="password" placeholder="new password (8+ chars)" minlength="8" required>
+      <button type="submit" class="btn">Change</button>
+    </form>
+    <h2>Two-factor authentication</h2>
+    {{if .TOTPEnabled}}
+    <p class="muted">2FA is <span class="badge-ok">enabled</span> on your account.</p>
+    <form class="form-row" method="post" action="/security/2fa/disable">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="totp_code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+      <button type="submit" class="btn btn-danger">Disable 2FA</button>
+    </form>
+    {{else if .TOTPURI}}
+    <p class="muted">Add this secret to your authenticator app:</p>
+    <pre class="code-block">{{.TOTPURI}}</pre>
+    <form class="form-row" method="post" action="/security/2fa/enable">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="totp_code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+      <button type="submit" class="btn btn-primary">Confirm &amp; enable</button>
+    </form>
+    {{else}}
+    <p class="muted">Protect your account with a TOTP authenticator app.</p>
+    <form method="post" action="/security/2fa/setup">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <button type="submit" class="btn">Set up 2FA</button>
+    </form>
+    {{end}}
+  </div>
+
+  <div class="card">
+    <h2>IP blocker</h2>
+    <p class="muted">Blocked addresses are denied access to the panel. Accepts single IPs or CIDR ranges.</p>
+    <form class="form-row" method="post" action="/security/ip/create">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="cidr" placeholder="203.0.113.7 or 203.0.113.0/24" required>
+      <input type="text" name="comment" placeholder="comment (optional)">
+      <button type="submit" class="btn">Block</button>
+    </form>
+    <table class="list">
+      <thead><tr><th>CIDR</th><th>Comment</th><th>Added</th><th class="actions-col"></th></tr></thead>
+      <tbody>
+      {{range .IPRules}}
+      <tr>
+        <td><code>{{.CIDR}}</code></td>
+        <td>{{.Comment}}</td>
+        <td>{{timefmt .CreatedAt}}</td>
+        <td class="actions">
+          <form method="post" action="/security/ip/delete">
+            <input type="hidden" name="csrf_token" value="{{$csrf}}">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button type="submit" class="btn btn-sm btn-danger">Unblock</button>
+          </form>
+        </td>
+      </tr>
+      {{else}}
+      <tr><td colspan="4" class="muted">No blocked addresses.</td></tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Audit log (last 100 actions)</h2>
+  <table class="list">
+    <thead><tr><th>When</th><th>User</th><th>Action</th><th>Detail</th></tr></thead>
+    <tbody>
+    {{range .Audit}}
+    <tr>
+      <td>{{timefmt .CreatedAt}}</td>
+      <td>{{.Username}}</td>
+      <td><code>{{.Action}}</code></td>
+      <td class="wrap">{{.Detail}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No audit entries yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}
