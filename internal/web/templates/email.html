@@ -1,0 +1,75 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="grid grid-2">
+  <form class="card" method="post" action="/email/mailboxes/create">
+    <h2>Create mailbox</h2>
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Address <input type="email" name="address" placeholder="user@example.com" required></label>
+    <label>Password <input type="password" name="password" minlength="8" required></label>
+    <label>Quota (MB, 0 = unlimited) <input type="number" name="quota_mb" value="0" min="0"></label>
+    <button type="submit" class="btn btn-primary">Create mailbox</button>
+  </form>
+  <form class="card" method="post" action="/email/forwarders/create">
+    <h2>Create forwarder</h2>
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>From <input type="email" name="from" placeholder="alias@example.com" required></label>
+    <label>To <input type="email" name="to" placeholder="dest@elsewhere.com" required></label>
+    <button type="submit" class="btn btn-primary">Create forwarder</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Mailboxes</h2>
+    <a class="btn btn-sm" href="/email/maddy.conf">Export maddy config</a>
+  </div>
+  {{if .Domains}}<p class="muted">Mail domains: {{range $i, $d := .Domains}}{{if $i}}, {{end}}<code>{{$d}}</code>{{end}}</p>{{end}}
+  <table class="list">
+    <thead><tr><th>Address</th><th>Quota</th><th>Created</th><th class="actions-col"></th></tr></thead>
+    <tbody>
+    {{range .Mailboxes}}
+    <tr>
+      <td>{{.Address}}</td>
+      <td>{{if .QuotaMB}}{{.QuotaMB}} MB{{else}}unlimited{{end}}</td>
+      <td>{{timefmt .CreatedAt}}</td>
+      <td class="actions">
+        <form method="post" action="/email/mailboxes/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No mailboxes yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Forwarders</h2>
+  <table class="list">
+    <thead><tr><th>From</th><th>To</th><th class="actions-col"></th></tr></thead>
+    <tbody>
+    {{range .Forwarders}}
+    <tr>
+      <td>{{.From}}</td>
+      <td>{{.To}}</td>
+      <td class="actions">
+        <form method="post" action="/email/forwarders/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="3" class="muted">No forwarders yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}

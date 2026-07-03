@@ -1,0 +1,40 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="toolbar">
+  <a class="btn" href="/functions">&larr; All functions</a>
+</div>
+
+<form class="card" method="post" action="/functions/{{.Function.ID}}/save">
+  <h2>Edit <code>{{.Function.Name}}</code></h2>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <label>Description <input type="text" name="description" value="{{.Function.Description}}"></label>
+  <label>Timeout (seconds) <input type="number" name="timeout_sec" value="{{.Function.TimeoutSec}}" min="1" max="300"></label>
+  <label><input type="checkbox" name="enabled" {{if .Function.Enabled}}checked{{end}}> Enabled</label>
+  <label>Script
+    <textarea name="script" class="editor" rows="14" spellcheck="false">{{.Function.Script}}</textarea>
+  </label>
+  <div class="toolbar">
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>
+
+<div class="card">
+  <h2>Invoke</h2>
+  <p class="muted">Public URL (requires token):</p>
+  <pre class="terminal-output">{{.InvokeURL}}</pre>
+  <form method="post" action="/functions/{{.Function.ID}}/invoke">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <button type="submit" class="btn">Run from panel</button>
+  </form>
+</div>
+
+{{if .Result}}
+<div class="card">
+  <h2>Output</h2>
+  <p class="muted">exit {{.Result.ExitCode}} · {{.Result.Elapsed}}{{if .Result.TimedOut}} · timed out{{end}}</p>
+  <pre class="terminal-output">{{.Result.Output}}</pre>
+</div>
+{{end}}
+{{end}}
+{{template "footer" .}}

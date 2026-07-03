@@ -1,0 +1,47 @@
+{{define "header"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} · GoshPanel</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">Gosh<span>Panel</span></div>
+    <nav>
+      <a href="/" {{if eq .Active "dashboard"}}class="active"{{end}}>Dashboard</a>
+      <a href="/files" {{if eq .Active "files"}}class="active"{{end}}>Files</a>
+      <a href="/domains" {{if eq .Active "domains"}}class="active"{{end}}>Domains &amp; DNS</a>
+      <a href="/databases" {{if eq .Active "databases"}}class="active"{{end}}>Databases</a>
+      <a href="/email" {{if eq .Active "email"}}class="active"{{end}}>Email</a>
+      <a href="/webmail" {{if eq .Active "webmail"}}class="active"{{end}}>Webmail</a>
+      <a href="/installers" {{if eq .Active "installers"}}class="active"{{end}}>Installers</a>
+      <a href="/cron" {{if eq .Active "cron"}}class="active"{{end}}>Cron Jobs</a>
+      <a href="/backups" {{if eq .Active "backups"}}class="active"{{end}}>Backups</a>
+      <a href="/logs" {{if eq .Active "logs"}}class="active"{{end}}>Logs</a>
+      <a href="/terminal" {{if eq .Active "terminal"}}class="active"{{end}}>Terminal</a>
+      <a href="/orchestrator" {{if eq .Active "orchestrator"}}class="active"{{end}}>Orchestrator</a>
+      <a href="/docker" {{if eq .Active "docker"}}class="active"{{end}}>Docker</a>
+      <a href="/functions" {{if eq .Active "functions"}}class="active"{{end}}>Functions</a>
+      <a href="/fleet" {{if eq .Active "fleet"}}class="active"{{end}}>Fleet</a>
+      <a href="/metrics" {{if eq .Active "metrics"}}class="active"{{end}}>Performance</a>
+      <a href="/analytics" {{if eq .Active "analytics"}}class="active"{{end}}>Analytics</a>
+      <a href="/sftp" {{if eq .Active "sftp"}}class="active"{{end}}>SFTP</a>
+      <a href="/ssl" {{if eq .Active "ssl"}}class="active"{{end}}>SSL / TLS</a>
+      <a href="/security" {{if eq .Active "security"}}class="active"{{end}}>Security</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="whoami">{{.User.Username}} ({{.User.Role}})</span>
+      <form method="post" action="/logout">
+        <input type="hidden" name="csrf_token" value="{{.CSRF}}">
+        <button type="submit" class="btn btn-ghost">Sign out</button>
+      </form>
+    </div>
+  </aside>
+  <main class="content">
+    <h1>{{.Title}}</h1>
+    {{if .Flash}}<div class="flash flash-ok">{{.Flash}}</div>{{end}}
+    {{if .Error}}<div class="flash flash-err">{{.Error}}</div>{{end}}
+{{end}}
