@@ -1,0 +1,76 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="grid grid-4">
+  <div class="card stat">
+    <div class="stat-label">Load average</div>
+    <div class="stat-value">{{printf "%.2f" .Stats.Load1}}</div>
+    <div class="muted">{{printf "%.2f / %.2f (5m / 15m)" .Stats.Load5 .Stats.Load15}}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-label">Memory</div>
+    <div class="stat-value">{{printf "%.0f%%" .Stats.MemUsedPct}}</div>
+    <div class="muted">{{humanKB .Stats.MemUsedKB}} of {{humanKB .Stats.MemTotalKB}}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-label">Disk ({{.FilesRoot}})</div>
+    <div class="stat-value">{{printf "%.0f%%" .Stats.DiskUsedPct}}</div>
+    <div class="muted">{{humanKB .Stats.DiskUsedKB}} of {{humanKB .Stats.DiskTotalKB}}</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-label">Uptime</div>
+    <div class="stat-value">{{durfmt .Stats.Uptime}}</div>
+    <div class="muted">host uptime</div>
+  </div>
+</div>
+
+{{if .HasHistory}}
+<div class="card">
+  <div class="card-head">
+    <h2>Performance trend</h2>
+    <a href="/metrics" class="btn btn-sm">Open performance dashboard →</a>
+  </div>
+  <div class="grid grid-3 perf-spark-grid">
+    <div class="perf-spark">
+      <div class="perf-spark-label">Load</div>
+      {{.LoadSpark}}
+    </div>
+    <div class="perf-spark">
+      <div class="perf-spark-label">Memory</div>
+      {{.MemSpark}}
+    </div>
+    <div class="perf-spark">
+      <div class="perf-spark-label">Disk</div>
+      {{.DiskSpark}}
+    </div>
+  </div>
+</div>
+{{else}}
+<div class="card">
+  <p class="muted">Historical charts will appear after metrics sampling runs. <a href="/metrics">View performance dashboard</a></p>
+</div>
+{{end}}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Server information</h2>
+    <table class="kv">
+      <tr><th>Hostname</th><td>{{.Stats.Hostname}}</td></tr>
+      <tr><th>Kernel</th><td>{{.Stats.KernelVer}}</td></tr>
+      <tr><th>OS / Arch</th><td>{{.Stats.OS}} / {{.Stats.Arch}}</td></tr>
+      <tr><th>CPU cores</th><td>{{.Stats.NumCPU}}</td></tr>
+      <tr><th>Panel runtime</th><td>{{.Stats.GoVersion}} (pid {{.Stats.PanelPID}})</td></tr>
+      <tr><th>Panel started</th><td>{{timefmt .Stats.PanelStarted}}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>At a glance</h2>
+    <table class="kv">
+      <tr><th>Domains</th><td>{{index .Counts "domains"}}</td></tr>
+      <tr><th>Mailboxes</th><td>{{index .Counts "mailboxes"}}</td></tr>
+      <tr><th>Cron jobs</th><td>{{index .Counts "cron"}}</td></tr>
+      <tr><th>Database connections</th><td>{{index .Counts "databases"}}</td></tr>
+    </table>
+  </div>
+</div>
+{{end}}
+{{template "footer" .}}
