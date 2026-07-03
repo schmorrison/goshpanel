@@ -54,9 +54,9 @@ func (s *Server) handleMetricsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, r, "metrics.html", "Performance", "metrics", metricsData{
 		Stats:      stats,
 		Samples:    samples,
-		LoadChart:  metricsviz.BuildChart("load", "Load average", "", "#0f766e", loadValues, loadYMax, 640, 140),
-		MemChart:   metricsviz.BuildChart("memory", "Memory", "%", "#2563eb", memValues, 100, 640, 140),
-		DiskChart:  metricsviz.BuildChart("disk", "Disk", "%", "#7c3aed", diskValues, 100, 640, 140),
+		LoadChart:  metricsviz.BuildChart("load", "Load average", "", "#22d3ee", loadValues, loadYMax, 640, 140),
+		MemChart:   metricsviz.BuildChart("memory", "Memory", "%", "#818cf8", memValues, 100, 640, 140),
+		DiskChart:  metricsviz.BuildChart("disk", "Disk", "%", "#c084fc", diskValues, 100, 640, 140),
 		Range:      rangeKeyOrDefault(rangeKey),
 		RangeLabel: rangeLabel,
 		Mode:       string(fleet.ParseMode(s.cfg.FleetMode)),

@@ -30,9 +30,9 @@ func ChartsFromFleetHistory(samples []store.FleetTelemetrySample, numCPU int) (l
 	if numCPU <= 0 {
 		numCPU = 1
 	}
-	return BuildChart("fleet-load", "Load", "", "#0f766e", loadVals, LoadYMaxFromValues(loadVals, numCPU), 480, 100),
-		BuildChart("fleet-mem", "Memory", "%", "#2563eb", memVals, 100, 480, 100),
-		BuildChart("fleet-disk", "Disk", "%", "#7c3aed", diskVals, 100, 480, 100)
+	return BuildChart("fleet-load", "Load", "", "#22d3ee", loadVals, LoadYMaxFromValues(loadVals, numCPU), 480, 100),
+		BuildChart("fleet-mem", "Memory", "%", "#818cf8", memVals, 100, 480, 100),
+		BuildChart("fleet-disk", "Disk", "%", "#c084fc", diskVals, 100, 480, 100)
 }
 
 // LoadYMaxFromValues picks a Y-axis max for load value slices.

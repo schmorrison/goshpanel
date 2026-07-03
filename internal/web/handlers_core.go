@@ -115,9 +115,9 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	if samples, err := s.store.MetricSamples(48); err == nil && len(samples) > 1 {
 		data.HasHistory = true
 		loadYMax := metricsviz.LoadYMax(samples, stats.NumCPU)
-		data.LoadSpark = metricsviz.Sparkline(metricsviz.SamplesLoad(samples), loadYMax, 280, 64, "#0f766e")
-		data.MemSpark = metricsviz.Sparkline(metricsviz.SamplesMem(samples), 100, 280, 64, "#2563eb")
-		data.DiskSpark = metricsviz.Sparkline(metricsviz.SamplesDisk(samples), 100, 280, 64, "#7c3aed")
+		data.LoadSpark = metricsviz.Sparkline(metricsviz.SamplesLoad(samples), loadYMax, 280, 64, "#22d3ee")
+		data.MemSpark = metricsviz.Sparkline(metricsviz.SamplesMem(samples), 100, 280, 64, "#818cf8")
+		data.DiskSpark = metricsviz.Sparkline(metricsviz.SamplesDisk(samples), 100, 280, 64, "#c084fc")
 	}
 
 	s.render(w, r, "dashboard.html", "Dashboard", "dashboard", data)

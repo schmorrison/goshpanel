@@ -41,7 +41,7 @@ func (s *Server) handleAnalyticsPage(w http.ResponseWriter, r *http.Request) {
 	for i, c := range counts {
 		floatCounts[i] = float64(c)
 	}
-	chart := metricsviz.BuildChart("analytics", "Requests", "", "#0f766e", floatCounts, 0, 640, 120)
+	chart := metricsviz.BuildChart("analytics", "Requests", "", "#34d399", floatCounts, 0, 640, 120)
 
 	s.render(w, r, "analytics.html", "Analytics", "analytics", analyticsData{
 		Range:      rangeKeyOrDefault(rangeKey),
