@@ -1,0 +1,25 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="card">
+  <h2>Certificate scanner</h2>
+  <p class="muted">Scanning <code>{{.Dir}}</code> for .pem / .crt files (pure Go x509 parsing).</p>
+  <table class="list">
+    <thead><tr><th>File</th><th>Subject</th><th>Issuer</th><th>Expires</th><th>Days left</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Certs}}
+    <tr>
+      <td class="wrap"><code>{{.File}}</code></td>
+      <td>{{.Subject}}</td>
+      <td>{{.Issuer}}</td>
+      <td>{{timefmt .NotAfter}}</td>
+      <td>{{.DaysLeft}}</td>
+      <td>{{if .Expired}}<span class="badge-warn">expired</span>{{else if .ExpiringSoon}}<span class="badge-warn">expiring</span>{{else}}<span class="badge-ok">valid</span>{{end}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="6" class="muted">No certificates found. Place PEM files in {{.Dir}} or set <code>GOSHPANEL_SSL_CERT_DIR</code>. Caddy auto-HTTPS certs are typically under Caddy's storage path.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}

@@ -1,0 +1,41 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <div class="card-head">
+    <h2>Backups of <code>{{.SrcDir}}</code></h2>
+    <form method="post" action="/backups/create">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <button type="submit" class="btn btn-primary">Create backup now</button>
+    </form>
+  </div>
+  <table class="list">
+    <thead><tr><th>Archive</th><th>Size</th><th>Created</th><th class="actions-col">Actions</th></tr></thead>
+    <tbody>
+    {{range .Backups}}
+    <tr>
+      <td><code>{{.Name}}</code></td>
+      <td>{{humanBytes .Size}}</td>
+      <td>{{timefmt .Created}}</td>
+      <td class="actions">
+        <a class="btn btn-sm" href="/backups/download?name={{.Name}}">Download</a>
+        <form method="post" action="/backups/restore">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="name" value="{{.Name}}">
+          <button type="submit" class="btn btn-sm">Restore</button>
+        </form>
+        <form method="post" action="/backups/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="name" value="{{.Name}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No backups yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}
