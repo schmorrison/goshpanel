@@ -17,7 +17,7 @@ Legend:
 | File download | Pure Go | **Implemented** | `http.ServeContent` |
 | Backup / Backup Wizard | Pure Go (`archive/tar`, `compress/gzip`) | **Implemented** | Create, list, download, restore, delete tar.gz archives |
 | Disk Usage | Pure Go (`syscall.Statfs`) | **Implemented** | On dashboard |
-| FTP Accounts / FTP Connections | Go FTP/SFTP servers exist (e.g. `pkg/sftp`) | **Implemented (SFTP)** | Panel-user auth, chrooted to files sandbox |
+| FTP Accounts / FTP Connections | Go FTP/SFTP servers exist (e.g. `pkg/sftp`) | **Implemented (SFTP)** | Panel-user auth; per-user chroot under files sandbox (`files_subdir`) |
 | Images (thumbnailer/converter) | Pure Go (`image` stdlib) | Planned | Low priority |
 | Directory Privacy (htpasswd) | Pure Go | Planned | Would render Caddy `basic_auth` blocks |
 | Git Version Control | Process calls to `git` | Planned | `go-git` is a pure-Go option |
@@ -54,8 +54,8 @@ Legend:
 | SMTP/IMAP service | Go mail servers: maddy, go-guerrilla | Config export | maddy is a complete pure-Go MTA + IMAP server |
 | Spam filters | Go milters exist | Planned | |
 | Autoresponders | maddy/custom Go hook | Planned | |
-| Email Deliverability (SPF/DKIM/DMARC) | Pure Go | Planned | Generate TXT records into the Zone Editor |
-| Webmail | Go webmail projects exist | Planned | Out of core scope |
+| Email Deliverability (SPF/DKIM/DMARC) | Pure Go | **Implemented** | One-click SPF/DMARC/DKIM TXT suggestions in Zone Editor |
+| Webmail | Go webmail projects exist | **Implemented (proxy)** | Caddy reverse proxy to SnappyMail/Roundcube upstream on `/webmail` |
 | Mailing lists | — | Not planned | Niche; external tools |
 
 ## Metrics & Logs
@@ -81,15 +81,14 @@ Legend:
 | SSH Access (key management) | Pure Go (`golang.org/x/crypto/ssh`) | Planned | authorized_keys management |
 | Hotlink / Leech Protection | Caddy directives | Planned | |
 | ModSecurity (WAF) | Go WAF: Coraza | Planned | Coraza is a pure-Go OWASP CRS engine |
-| Two-Factor Authentication | Pure Go (TOTP) | Planned | |
+| Two-Factor Authentication | Pure Go (TOTP) | **Implemented** | Optional per-user 2FA on login; enroll on `/security` |
 | Terminal | Process call to `bash` | **Implemented** | Request/response command runner with timeout; PTY/WebSocket upgrade planned |
 | Orchestrator (live apply) | Process calls | **Implemented** | Auto-write & reload Caddy, CoreDNS, maddy; systemd unit management |
 | Docker | Process calls (`docker` CLI) | **Implemented** | Containers, images, logs, run, compose stack up/down |
 | Micro Functions | Pure Go + bash | **Implemented** | HTTP-triggered bash scripts at `/fn/{name}?token=...` |
-| Fleet management | Pure Go HTTP API | **Implemented** | JWT enroll tokens; per-node performance charts; remote orchestrator control |
+| Fleet management | Pure Go HTTP API | **Implemented** | JWT enroll tokens; per-node performance charts; remote backup/docker/orchestrator control |
 | Metrics history | Pure Go (`/proc` + SQLite) | **Implemented** | Performance dashboard with SVG charts, gauges, 1h–7d ranges |
 | Access log analytics | Caddy JSON log ingest | **Implemented** | `/analytics` — requests, status codes, top paths |
-| Two-factor auth (TOTP) | `pquerna/otp` | **Implemented** | Optional per-user 2FA on login; enroll on `/security` |
 | SSL/TLS status | Pure Go (`crypto/x509`) | **Implemented** | PEM scanner with expiry warnings |
 
 ## Advanced
@@ -108,12 +107,12 @@ Legend:
 | cPanel feature | Go feasibility | GoshPanel status | Notes |
 |---|---|---|---|
 | MultiPHP Manager / INI Editor | Process calls | Not planned | GoshPanel targets Go-first stacks; PHP-FPM can still be proxied via Caddy |
-| Site Software / WordPress Manager | — | Not planned | |
-| Application Manager (deploy apps) | Pure Go + systemd process calls | Planned | Manage systemd units for Go binaries |
+| Site Software / WordPress Manager | — | **Implemented (installers)** | WordPress, Ghost, Gitea one-click Docker stacks on `/installers` |
+| Application Manager (deploy apps) | Pure Go + systemd process calls | **Implemented (Docker)** | Compose stacks + domain + Caddy proxy |
 
 ## Summary
 
-Implemented today: **16 core modules** — Dashboard, Files, Domains & DNS, Databases, Email, Cron, Backups, Logs, Terminal, Security, Orchestrator, Docker, Micro Functions, **Fleet**, **Metrics**, **SSL/TLS**.
+Implemented today: **18 core modules** — Dashboard, Files, Domains & DNS, Databases, Email, **Webmail**, **App Installers**, Cron, Backups, Logs, Terminal, Security, Orchestrator, Docker, Micro Functions, **Fleet**, **Metrics**, **Analytics**, **SFTP**, **SSL/TLS**.
 
 Everything cPanel does is achievable from Go, in three tiers:
 

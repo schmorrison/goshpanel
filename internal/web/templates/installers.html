@@ -1,0 +1,21 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="grid grid-3">
+{{range .Specs}}
+<div class="card">
+  <h2>{{.Name}}</h2>
+  <p class="muted">{{.Description}}</p>
+  <form method="post" action="/installers/{{.ID}}/install">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Domain
+      <input type="text" name="domain" placeholder="blog.example.com" required>
+    </label>
+    <button type="submit" class="btn btn-primary">Install</button>
+  </form>
+  <p class="muted">Creates a Docker stack, domain with reverse proxy to <code>localhost:{{.Port}}</code>, and applies Caddy.</p>
+</div>
+{{end}}
+</div>
+{{end}}
+{{template "footer" .}}

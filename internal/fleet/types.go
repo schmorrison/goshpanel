@@ -50,7 +50,8 @@ type ComponentStatus struct {
 
 // ControlRequest is sent to a remote node.
 type ControlRequest struct {
-	Action string `json:"action"`
+	Action string            `json:"action"`
+	Params map[string]string `json:"params,omitempty"`
 }
 
 // ControlResponse is returned after a remote action.
@@ -67,12 +68,16 @@ type IngestRequest struct {
 
 // Supported control actions.
 const (
-	ActionApplyAll    = "apply_all"
-	ActionApplyCaddy  = "apply_caddy"
-	ActionApplyDNS    = "apply_coredns"
-	ActionApplyMaddy  = "apply_maddy"
-	ActionApplySystemd = "apply_systemd"
-	ActionPing        = "ping"
+	ActionApplyAll       = "apply_all"
+	ActionApplyCaddy     = "apply_caddy"
+	ActionApplyDNS       = "apply_coredns"
+	ActionApplyMaddy     = "apply_maddy"
+	ActionApplySystemd   = "apply_systemd"
+	ActionPing           = "ping"
+	ActionBackupCreate   = "backup_create"
+	ActionDockerPing     = "docker_ping"
+	ActionDockerStackUp  = "docker_stack_up"
+	ActionDockerStackDown = "docker_stack_down"
 )
 
 // ParseControlRequest decodes a control request body.

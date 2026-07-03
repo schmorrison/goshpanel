@@ -78,6 +78,16 @@ func TestParseMode(t *testing.T) {
 	}
 }
 
+func TestParseControlRequest(t *testing.T) {
+	req, err := ParseControlRequest([]byte(`{"action":"docker_stack_up","params":{"stack":"web"}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if req.Action != ActionDockerStackUp || req.Params["stack"] != "web" {
+		t.Errorf("req = %+v", req)
+	}
+}
+
 func TestEnrollJWT(t *testing.T) {
 	secret := "enroll-secret-key"
 	token, err := SignEnrollToken(secret, time.Hour, "worker-east")

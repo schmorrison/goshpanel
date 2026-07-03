@@ -108,11 +108,19 @@
     <input type="hidden" name="node_id" value="{{.Node.ID}}">
     <select name="action">
       <option value="ping">ping</option>
+      <option value="backup_create">create backup</option>
+      <option value="docker_ping">docker ping</option>
+      <option value="docker_stack_up">docker stack up</option>
+      <option value="docker_stack_down">docker stack down</option>
       <option value="apply_all">apply all (orchestrator)</option>
       <option value="apply_caddy">apply caddy</option>
       <option value="apply_coredns">apply coredns</option>
       <option value="apply_maddy">apply maddy</option>
       <option value="apply_systemd">apply systemd</option>
+    </select>
+    <select name="stack">
+      <option value="">stack (for docker actions)</option>
+      {{range $.Stacks}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
     </select>
     <button type="submit" class="btn">Send command</button>
   </form>

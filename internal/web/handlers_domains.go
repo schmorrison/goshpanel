@@ -1,12 +1,14 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/schmorrison/goshpanel/internal/dns"
 	"github.com/schmorrison/goshpanel/internal/domains"
+	"github.com/schmorrison/goshpanel/internal/email"
 	"github.com/schmorrison/goshpanel/internal/store"
 )
 
@@ -76,9 +78,10 @@ func (s *Server) handleCaddyfile(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/domains", err)
 		return
 	}
+	ws, _ := s.store.WebmailSettings()
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="Caddyfile"`)
-	w.Write([]byte(domains.RenderCaddyfile(list, s.cfg.CaddyAccessLog)))
+	w.Write([]byte(domains.RenderCaddyfile(list, s.cfg.CaddyAccessLog, ws)))
 }
 
 func (s *Server) handleZoneFile(w http.ResponseWriter, r *http.Request) {
@@ -144,4 +147,25 @@ func (s *Server) handleDNSDelete(w http.ResponseWriter, r *http.Request) {
 	s.audit(r, "dns.delete", strconv.FormatInt(id, 10))
 	s.maybeAutoApply(r.Context())
 	redirectFlash(w, r, "/domains", "Record removed")
+}
+
+func (s *Server) handleDeliverability(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		redirectError(w, r, "/domains", err)
+		return
+	}
+	d, err := s.store.DomainByID(id)
+	if err != nil {
+		redirectError(w, r, "/domains", err)
+		return
+	}
+	added, err := email.ApplyDeliverability(s.store, id, d.Name, r.FormValue("server_ip"), r.FormValue("dkim_selector"))
+	if err != nil {
+		redirectError(w, r, "/domains", err)
+		return
+	}
+	s.maybeAutoApply(r.Context())
+	s.audit(r, "domains.deliverability", d.Name)
+	redirectFlash(w, r, "/domains", fmt.Sprintf("Added %d deliverability DNS record(s) for %s", added, d.Name))
 }

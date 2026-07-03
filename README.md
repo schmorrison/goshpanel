@@ -19,15 +19,17 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Domains & DNS | `/domains` | Site definitions, DNS zone editor, Caddyfile + RFC 1035 zone file export |
 | Databases | `/databases` | Saved MySQL/PostgreSQL/SQLite connections, table browser, read-only SQL console |
 | Email | `/email` | Mailboxes (argon2id hashes, quotas), forwarders, maddy config export |
+| Webmail | `/webmail` | Caddy reverse proxy to a webmail app (SnappyMail, Roundcube, etc.) |
+| App Installers | `/installers` | One-click WordPress, Ghost, and Gitea Docker stacks with domain + proxy |
 | Cron | `/cron` | Validated cron jobs, crontab export, one-click `crontab` install |
 | Backups | `/backups` | tar.gz create/download/restore/delete of the files sandbox |
 | Logs | `/logs` | Tail viewer over an allowlist of log files |
 | Terminal | `/terminal` | One-shot `bash -c` command runner with timeout |
-| Security | `/security` | Panel users & roles, password changes, IP blocker, audit log |
+| Security | `/security` | Panel users & roles, password changes, 2FA, per-user SFTP dirs, IP blocker, audit log |
 | Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
-| Fleet | `/fleet` | Multi-instance telemetry, per-node performance charts, remote control |
+| Fleet | `/fleet` | Multi-instance telemetry, per-node performance charts, remote backup/docker/orchestrator control |
 | Performance | `/metrics` | Live gauges, SVG history charts (1h–7d), sampled metrics |
 | Analytics | `/analytics` | Caddy JSON access log stats, top paths, hourly chart |
 | SFTP | `/sftp` | Sandboxed SFTP server info (`GOSHPANEL_SFTP=true`) |
@@ -132,8 +134,9 @@ internal/crypto/     argon2id hashing, token generation
 internal/dbmanager/  Multi-driver database console
 internal/dns/        DNS record validation, zone file rendering
 internal/domains/    Domain validation, Caddyfile rendering
-internal/email/      Mailboxes, forwarders, maddy config export
+internal/email/      Mailboxes, forwarders, maddy config, deliverability DNS helpers
 internal/files/      Sandboxed file manager
+internal/installers/ One-click WordPress/Ghost/Gitea compose stacks
 internal/logs/       Allowlisted log tailing
 internal/runner/     bash command runner
 internal/security/   IP blocker (net/netip)

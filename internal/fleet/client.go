@@ -45,15 +45,15 @@ func (c *Client) FetchTelemetry(ctx context.Context, baseURL, token string) (Tel
 }
 
 // SendControl POSTs a control action to a remote node.
-func (c *Client) SendControl(ctx context.Context, baseURL, token, action string) (ControlResponse, error) {
-	body, _ := json.Marshal(ControlRequest{Action: action})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinURL(baseURL, "/api/v1/fleet/control"), bytes.NewReader(body))
+func (c *Client) SendControl(ctx context.Context, baseURL, token string, ctrl ControlRequest) (ControlResponse, error) {
+	body, _ := json.Marshal(ctrl)
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, joinURL(baseURL, "/api/v1/fleet/control"), bytes.NewReader(body))
 	if err != nil {
 		return ControlResponse{}, err
 	}
-	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := c.http.Do(req)
+	httpReq.Header.Set("Authorization", "Bearer "+token)
+	httpReq.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(httpReq)
 	if err != nil {
 		return ControlResponse{}, fmt.Errorf("send control: %w", err)
 	}

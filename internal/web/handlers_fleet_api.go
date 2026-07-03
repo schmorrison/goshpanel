@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/schmorrison/goshpanel/internal/fleet"
-	"github.com/schmorrison/goshpanel/internal/orchestrator"
 )
 
 func (s *Server) fleetAuth(next http.HandlerFunc) http.HandlerFunc {
@@ -57,7 +56,7 @@ func (s *Server) handleFleetControlAPI(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid JSON", http.StatusBadRequest)
 		return
 	}
-	res := s.executeFleetControl(r, req.Action)
+	res := s.executeFleetControl(r, req)
 	if !res.OK {
 		writeJSON(w, http.StatusInternalServerError, res)
 		return
@@ -113,49 +112,6 @@ func (s *Server) handleFleetIngestAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (s *Server) executeFleetControl(r *http.Request, action string) fleet.ControlResponse {
-	switch action {
-	case fleet.ActionPing:
-		return fleet.ControlResponse{OK: true, Message: "pong"}
-	case fleet.ActionApplyAll:
-		if s.orch == nil {
-			return fleet.ControlResponse{Message: "orchestrator disabled"}
-		}
-		for _, res := range s.orch.ApplyAll(r.Context()) {
-			if !res.OK {
-				return fleet.ControlResponse{Message: res.Component + ": " + res.Message}
-			}
-		}
-		return fleet.ControlResponse{OK: true, Message: "applied all components"}
-	case fleet.ActionApplyCaddy:
-		if s.orch == nil {
-			return fleet.ControlResponse{Message: "orchestrator disabled"}
-		}
-		return toControlRes(s.orch.ApplyCaddy(r.Context()))
-	case fleet.ActionApplyDNS:
-		if s.orch == nil {
-			return fleet.ControlResponse{Message: "orchestrator disabled"}
-		}
-		return toControlRes(s.orch.ApplyCoreDNS(r.Context()))
-	case fleet.ActionApplyMaddy:
-		if s.orch == nil {
-			return fleet.ControlResponse{Message: "orchestrator disabled"}
-		}
-		return toControlRes(s.orch.ApplyMaddy(r.Context()))
-	case fleet.ActionApplySystemd:
-		if s.orch == nil {
-			return fleet.ControlResponse{Message: "orchestrator disabled"}
-		}
-		return toControlRes(s.orch.ApplySystemd(r.Context()))
-	default:
-		return fleet.ControlResponse{Message: "unknown action " + action}
-	}
-}
-
-func toControlRes(res orchestrator.Result) fleet.ControlResponse {
-	return fleet.ControlResponse{OK: res.OK, Message: res.Message}
 }
 
 func writeJSON(w http.ResponseWriter, code int, v any) {

@@ -65,7 +65,7 @@ func (s *Service) ApplyCaddy(ctx context.Context) Result {
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
 	}
-	if err := domains.WriteCaddyfile(domainsList, s.paths.CaddyConfig, s.paths.CaddyAccessLog); err != nil {
+	if err := domains.WriteCaddyfile(domainsList, s.paths.CaddyConfig, s.paths.CaddyAccessLog, s.webmailSettings()); err != nil {
 		res.Message = err.Error()
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
@@ -249,4 +249,12 @@ func reloadBinary(ctx context.Context, name string, args []string) error {
 
 func (s *Service) record(component, path, errMsg string) {
 	_ = s.store.SetOrchestratorStatus(component, path, errMsg, time.Now())
+}
+
+func (s *Service) webmailSettings() store.WebmailSettings {
+	ws, err := s.store.WebmailSettings()
+	if err != nil {
+		return store.WebmailSettings{}
+	}
+	return ws
 }

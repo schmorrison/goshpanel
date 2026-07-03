@@ -168,6 +168,13 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /domains/delete", s.requireAuth(s.handleDomainDelete))
 	s.mux.HandleFunc("GET /domains/caddyfile", s.requireAuth(s.handleCaddyfile))
 	s.mux.HandleFunc("GET /domains/{id}/zone", s.requireAuth(s.handleZoneFile))
+	s.mux.HandleFunc("POST /domains/{id}/deliverability", s.requireAuth(s.handleDeliverability))
+
+	s.mux.HandleFunc("GET /webmail", s.requireAuth(s.handleWebmailPage))
+	s.mux.HandleFunc("POST /webmail/save", s.requireAuth(s.handleWebmailSave))
+
+	s.mux.HandleFunc("GET /installers", s.requireAuth(s.handleInstallersPage))
+	s.mux.HandleFunc("POST /installers/{id}/install", s.requireAuth(s.handleInstallerRun))
 	s.mux.HandleFunc("POST /dns/create", s.requireAuth(s.handleDNSCreate))
 	s.mux.HandleFunc("POST /dns/delete", s.requireAuth(s.handleDNSDelete))
 
@@ -202,6 +209,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /security/ip/delete", s.requireAuth(s.handleIPRuleDelete))
 	s.mux.HandleFunc("POST /security/users/create", s.requireAuth(s.handleUserCreate))
 	s.mux.HandleFunc("POST /security/users/delete", s.requireAuth(s.handleUserDelete))
+	s.mux.HandleFunc("POST /security/users/files-subdir", s.requireAuth(s.handleUserFilesSubdir))
 	s.mux.HandleFunc("POST /security/password", s.requireAuth(s.handlePasswordChange))
 	s.mux.HandleFunc("POST /security/2fa/setup", s.requireAuth(s.handle2FASetup))
 	s.mux.HandleFunc("POST /security/2fa/enable", s.requireAuth(s.handle2FAEnable))

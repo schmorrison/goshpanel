@@ -9,7 +9,7 @@
     <tr><th>Host key</th><td><code>{{.HostKey}}</code></td></tr>
     <tr><th>Authentication</th><td>Panel username + password (same as web login)</td></tr>
   </table>
-  <p class="muted">Connect with any SFTP client using your panel credentials. All paths are confined to <code>{{.FilesRoot}}</code>.</p>
+  <p class="muted">Connect with your panel credentials. Each user is chrooted to <code>{{.FilesRoot}}/&lt;username&gt;</code> (or a custom subdir set by an admin).</p>
   {{else}}
   <p class="muted">SFTP is disabled. Set <code>GOSHPANEL_SFTP=true</code> and optionally <code>GOSHPANEL_SFTP_ADDR=:2222</code>, then restart the panel.</p>
   {{end}}

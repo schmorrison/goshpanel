@@ -18,14 +18,14 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Server is an SSH/SFTP listener rooted at the files sandbox.
+// Server is an SSH/SFTP listener with per-user file sandboxes.
 type Server struct {
-	addr     string
-	hostKey  ssh.Signer
-	files    *files.Service
-	store    *store.Store
-	log      *slog.Logger
-	listener net.Listener
+	addr      string
+	hostKey   ssh.Signer
+	filesRoot *files.Service
+	store     *store.Store
+	log       *slog.Logger
+	listener  net.Listener
 }
 
 // New creates an SFTP server. hostKeyPath is loaded or generated on first run.
@@ -35,11 +35,11 @@ func New(addr, hostKeyPath string, fileSvc *files.Service, st *store.Store, log 
 		return nil, err
 	}
 	return &Server{
-		addr:    addr,
-		hostKey: signer,
-		files:   fileSvc,
-		store:   st,
-		log:     log,
+		addr:      addr,
+		hostKey:   signer,
+		filesRoot: fileSvc,
+		store:     st,
+		log:       log,
 	}, nil
 }
 
@@ -90,6 +90,19 @@ func (s *Server) handleConn(conn net.Conn) {
 	}
 	defer sshConn.Close()
 	go ssh.DiscardRequests(reqs)
+
+	u, err := s.store.UserByUsername(sshConn.User())
+	if err != nil {
+		return
+	}
+	sub, err := s.filesRoot.ForSubdir(store.FilesSubdirForUser(u))
+	if err != nil {
+		if s.log != nil {
+			s.log.Warn("sftp user root", "user", u.Username, "err", err)
+		}
+		return
+	}
+
 	for newCh := range chans {
 		if newCh.ChannelType() != "session" {
 			_ = newCh.Reject(ssh.UnknownChannelType, "unknown channel type")
@@ -105,7 +118,7 @@ func (s *Server) handleConn(conn net.Conn) {
 				_ = req.Reply(ok, nil)
 			}
 		}(reqs)
-		rootFS := &sandboxFS{svc: s.files}
+		rootFS := &sandboxFS{svc: sub}
 		srv := sftp.NewRequestServer(ch, sftp.Handlers{
 			FileGet:  rootFS,
 			FilePut:  rootFS,

@@ -58,6 +58,17 @@ func (s *Store) Domains() ([]Domain, error) {
 	return out, rows.Err()
 }
 
+// DomainByName returns one domain by hostname.
+func (s *Store) DomainByName(name string) (Domain, error) {
+	var d Domain
+	err := s.db.QueryRow(`SELECT id, name, root, upstream, created_at FROM domains WHERE name = ?`, name).
+		Scan(&d.ID, &d.Name, &d.Root, &d.Upstream, &d.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Domain{}, ErrNotFound
+	}
+	return d, err
+}
+
 // DomainByID returns one domain.
 func (s *Store) DomainByID(id int64) (Domain, error) {
 	var d Domain

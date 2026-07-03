@@ -25,7 +25,7 @@ func TestRenderCaddyfile(t *testing.T) {
 		{Name: "static.example.com", Root: "/srv/static"},
 		{Name: "app.example.com", Upstream: "localhost:3000"},
 		{Name: "both.example.com", Root: "/srv/both", Upstream: "localhost:4000"},
-	}, "/var/log/caddy/access.log")
+	}, "/var/log/caddy/access.log", store.WebmailSettings{})
 	for _, want := range []string{
 		"format json",
 		"/var/log/caddy/access.log",
@@ -39,5 +39,14 @@ func TestRenderCaddyfile(t *testing.T) {
 		if !strings.Contains(out, want) {
 			t.Errorf("Caddyfile missing %q:\n%s", want, out)
 		}
+	}
+}
+
+func TestRenderCaddyfileWebmail(t *testing.T) {
+	out := RenderCaddyfile(nil, "", store.WebmailSettings{
+		Enabled: true, Host: "webmail.example.com", Upstream: "localhost:8080",
+	})
+	if !strings.Contains(out, "webmail.example.com {") || !strings.Contains(out, "reverse_proxy localhost:8080") {
+		t.Errorf("webmail block missing:\n%s", out)
 	}
 }

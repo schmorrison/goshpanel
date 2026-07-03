@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/schmorrison/goshpanel/internal/security"
 )
@@ -105,6 +106,29 @@ func (s *Server) handle2FAEnable(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "security.2fa.enable", "enabled")
 	redirectFlash(w, r, "/security", "Two-factor authentication enabled")
+}
+
+func (s *Server) handleUserFilesSubdir(w http.ResponseWriter, r *http.Request) {
+	if currentUser(r).Role != "admin" {
+		redirectError(w, r, "/security", errors.New("only admins can edit user file directories"))
+		return
+	}
+	id, err := formID(r, "id")
+	if err != nil {
+		redirectError(w, r, "/security", err)
+		return
+	}
+	subdir := strings.Trim(strings.TrimSpace(r.FormValue("files_subdir")), "/")
+	if strings.Contains(subdir, "..") {
+		redirectError(w, r, "/security", errors.New("invalid files subdirectory"))
+		return
+	}
+	if err := s.store.UpdateUserFilesSubdir(id, subdir); err != nil {
+		redirectError(w, r, "/security", err)
+		return
+	}
+	s.audit(r, "security.user.files_subdir", strconv.FormatInt(id, 10)+" "+subdir)
+	redirectFlash(w, r, "/security", "Files directory updated")
 }
 
 func (s *Server) handle2FADisable(w http.ResponseWriter, r *http.Request) {

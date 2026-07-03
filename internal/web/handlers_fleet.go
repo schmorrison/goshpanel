@@ -26,6 +26,7 @@ type fleetData struct {
 	Mode             string
 	NodeName         string
 	Nodes            []fleetNodeRow
+	Stacks           []store.DockerStack
 	Selected         int64
 	PushURL          string
 	Interval         int
@@ -90,7 +91,9 @@ func (s *Server) handleFleetPage(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, row)
 	}
 	sel, _ := strconv.ParseInt(r.URL.Query().Get("node"), 10, 64)
+	stacks, _ := s.store.DockerStacks()
 	data.Nodes = rows
+	data.Stacks = stacks
 	data.Selected = sel
 	data.PushURL = s.cfg.FleetControllerURL
 	if data.EnrollToken != "" && data.EnrollEnvBlock == "" {
@@ -194,7 +197,11 @@ func (s *Server) handleFleetCommand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	action := r.FormValue("action")
-	res, err := s.fleet.SendCommand(r.Context(), id, action)
+	req := fleet.ControlRequest{
+		Action: action,
+		Params: map[string]string{"stack": r.FormValue("stack")},
+	}
+	res, err := s.fleet.SendCommand(r.Context(), id, req)
 	if err != nil {
 		redirectError(w, r, "/fleet?node="+strconv.FormatInt(id, 10), err)
 		return

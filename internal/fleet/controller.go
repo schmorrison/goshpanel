@@ -69,16 +69,16 @@ func (c *Controller) ingest(nodeID int64, t Telemetry) error {
 }
 
 // SendCommand dispatches a control action to a remote node.
-func (c *Controller) SendCommand(ctx context.Context, nodeID int64, action string) (ControlResponse, error) {
+func (c *Controller) SendCommand(ctx context.Context, nodeID int64, req ControlRequest) (ControlResponse, error) {
 	node, err := c.store.FleetNodeByID(nodeID)
 	if err != nil {
 		return ControlResponse{}, err
 	}
-	cmd, err := c.store.CreateFleetCommand(nodeID, action)
+	cmd, err := c.store.CreateFleetCommand(nodeID, req.Action)
 	if err != nil {
 		return ControlResponse{}, err
 	}
-	res, err := c.client.SendControl(ctx, node.BaseURL, node.Token, action)
+	res, err := c.client.SendControl(ctx, node.BaseURL, node.Token, req)
 	status := "completed"
 	result := res.Message
 	if err != nil {

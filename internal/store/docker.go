@@ -57,6 +57,17 @@ func (s *Store) DockerStackByID(id int64) (DockerStack, error) {
 	return st, err
 }
 
+// DockerStackByName returns one stack by name.
+func (s *Store) DockerStackByName(name string) (DockerStack, error) {
+	var st DockerStack
+	err := s.db.QueryRow(`SELECT id, name, compose_yaml, created_at FROM docker_stacks WHERE name = ?`, name).
+		Scan(&st.ID, &st.Name, &st.ComposeYAML, &st.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DockerStack{}, ErrNotFound
+	}
+	return st, err
+}
+
 // DeleteDockerStack removes a stack definition.
 func (s *Store) DeleteDockerStack(id int64) error {
 	return s.mustAffect(s.db.Exec(`DELETE FROM docker_stacks WHERE id = ?`, id))

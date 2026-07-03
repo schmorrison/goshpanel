@@ -46,6 +46,19 @@ func New(root string) (*Service, error) {
 // Root returns the absolute sandbox root.
 func (s *Service) Root() string { return s.root }
 
+// ForSubdir returns a service rooted at root/subdir (per-user SFTP sandbox).
+func (s *Service) ForSubdir(subdir string) (*Service, error) {
+	subdir = strings.Trim(strings.TrimSpace(subdir), "/")
+	root := s.root
+	if subdir != "" {
+		root = filepath.Join(s.root, filepath.FromSlash(subdir))
+	}
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		return nil, fmt.Errorf("create user files dir: %w", err)
+	}
+	return &Service{root: root}, nil
+}
+
 // resolve maps a sandbox-relative path to an absolute one, rejecting
 // escapes via .. or absolute components.
 func (s *Service) resolve(rel string) (string, error) {

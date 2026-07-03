@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -15,15 +16,17 @@ type User struct {
 	Role         string // "admin" or "user"
 	TOTPSecret   string
 	TOTPEnabled  bool
+	FilesSubdir  string // SFTP/files sandbox subdir (default: username)
 	CreatedAt    time.Time
 }
 
 // CreateUser inserts a new user and returns it with its assigned ID.
 func (s *Store) CreateUser(username, passwordHash, role string) (User, error) {
-	u := User{Username: username, PasswordHash: passwordHash, Role: role, CreatedAt: now()}
+	subdir := strings.TrimSpace(username)
+	u := User{Username: username, PasswordHash: passwordHash, Role: role, FilesSubdir: subdir, CreatedAt: now()}
 	res, err := s.db.Exec(
-		`INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, ?, ?)`,
-		u.Username, u.PasswordHash, u.Role, u.CreatedAt)
+		`INSERT INTO users (username, password_hash, role, files_subdir, created_at) VALUES (?, ?, ?, ?, ?)`,
+		u.Username, u.PasswordHash, u.Role, u.FilesSubdir, u.CreatedAt)
 	if err != nil {
 		return User{}, fmt.Errorf("create user: %w", err)
 	}
@@ -34,18 +37,18 @@ func (s *Store) CreateUser(username, passwordHash, role string) (User, error) {
 // UserByUsername looks a user up by name.
 func (s *Store) UserByUsername(username string) (User, error) {
 	return s.scanUser(s.db.QueryRow(
-		`SELECT id, username, password_hash, role, totp_secret, totp_enabled, created_at FROM users WHERE username = ?`, username))
+		`SELECT id, username, password_hash, role, totp_secret, totp_enabled, files_subdir, created_at FROM users WHERE username = ?`, username))
 }
 
 // UserByID looks a user up by ID.
 func (s *Store) UserByID(id int64) (User, error) {
 	return s.scanUser(s.db.QueryRow(
-		`SELECT id, username, password_hash, role, totp_secret, totp_enabled, created_at FROM users WHERE id = ?`, id))
+		`SELECT id, username, password_hash, role, totp_secret, totp_enabled, files_subdir, created_at FROM users WHERE id = ?`, id))
 }
 
 // Users returns all users ordered by username.
 func (s *Store) Users() ([]User, error) {
-	rows, err := s.db.Query(`SELECT id, username, password_hash, role, totp_secret, totp_enabled, created_at FROM users ORDER BY username`)
+	rows, err := s.db.Query(`SELECT id, username, password_hash, role, totp_secret, totp_enabled, files_subdir, created_at FROM users ORDER BY username`)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
@@ -64,6 +67,12 @@ func (s *Store) Users() ([]User, error) {
 // UpdateUserPassword replaces a user's password hash.
 func (s *Store) UpdateUserPassword(id int64, passwordHash string) error {
 	return s.mustAffect(s.db.Exec(`UPDATE users SET password_hash = ? WHERE id = ?`, passwordHash, id))
+}
+
+// UpdateUserFilesSubdir sets the per-user files/SFTP subdirectory.
+func (s *Store) UpdateUserFilesSubdir(id int64, subdir string) error {
+	subdir = strings.Trim(strings.TrimSpace(subdir), "/")
+	return s.mustAffect(s.db.Exec(`UPDATE users SET files_subdir = ? WHERE id = ?`, subdir, id))
 }
 
 // SetUserTOTP stores a TOTP secret and enabled flag.
@@ -87,10 +96,18 @@ func (s *Store) CountUsers() (int, error) {
 	return n, err
 }
 
+// FilesSubdirForUser returns the sandbox subdirectory for a user.
+func FilesSubdirForUser(u User) string {
+	if s := strings.Trim(strings.TrimSpace(u.FilesSubdir), "/"); s != "" {
+		return s
+	}
+	return u.Username
+}
+
 func (s *Store) scanUser(row *sql.Row) (User, error) {
 	var u User
 	var enabled int
-	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.TOTPSecret, &enabled, &u.CreatedAt)
+	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.TOTPSecret, &enabled, &u.FilesSubdir, &u.CreatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -101,7 +118,7 @@ func (s *Store) scanUser(row *sql.Row) (User, error) {
 func scanUserRow(rows *sql.Rows) (User, error) {
 	var u User
 	var enabled int
-	if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.TOTPSecret, &enabled, &u.CreatedAt); err != nil {
+	if err := rows.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Role, &u.TOTPSecret, &enabled, &u.FilesSubdir, &u.CreatedAt); err != nil {
 		return User{}, err
 	}
 	u.TOTPEnabled = enabled == 1
