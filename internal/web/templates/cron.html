@@ -1,0 +1,48 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+<form class="card" method="post" action="/cron/create">
+  <h2>Add cron job</h2>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <div class="form-row">
+    <input type="text" name="schedule" placeholder="*/5 * * * * or @daily" required>
+    <input type="text" name="command" placeholder="/usr/local/bin/task.sh" required class="grow">
+    <input type="text" name="comment" placeholder="comment (optional)">
+    <button type="submit" class="btn btn-primary">Add</button>
+  </div>
+  <p class="muted">Standard 5-field expressions (minute hour day month weekday) plus @hourly, @daily, @weekly, @monthly, @reboot.</p>
+</form>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Scheduled jobs</h2>
+    <div class="actions">
+      <a class="btn btn-sm" href="/cron/crontab">Download crontab</a>
+      <form method="post" action="/cron/apply">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <button type="submit" class="btn btn-sm">Install via crontab</button>
+      </form>
+    </div>
+  </div>
+  <table class="list">
+    <thead><tr><th>Schedule</th><th>Command</th><th>Comment</th><th class="actions-col"></th></tr></thead>
+    <tbody>
+    {{range .Data}}
+    <tr>
+      <td><code>{{.Schedule}}</code></td>
+      <td class="wrap"><code>{{.Command}}</code></td>
+      <td>{{.Comment}}</td>
+      <td class="actions">
+        <form method="post" action="/cron/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No cron jobs yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{template "footer" .}}

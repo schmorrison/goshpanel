@@ -1,0 +1,16 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="toolbar">
+  <a class="btn" href="/files{{if ne .Dir "."}}?dir={{.Dir}}{{end}}">&larr; Back to files</a>
+</div>
+<form class="card" method="post" action="/files/save">
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <input type="hidden" name="path" value="{{.Path}}">
+  <textarea name="content" class="editor" rows="28" spellcheck="false">{{.Content}}</textarea>
+  <div class="toolbar">
+    <button type="submit" class="btn btn-primary">Save</button>
+  </div>
+</form>
+{{end}}
+{{template "footer" .}}

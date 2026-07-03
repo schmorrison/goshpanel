@@ -1,0 +1,26 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="card">
+  <h2>Local metrics history</h2>
+  <p class="muted">Node <code>{{.NodeName}}</code> · sampling every {{.Interval}}s · fleet mode <code>{{.Mode}}</code></p>
+  {{if .Samples}}
+  <table class="list">
+    <thead><tr><th>Time</th><th>Load (1m)</th><th>Memory %</th><th>Disk %</th><th>Sparkline (mem)</th></tr></thead>
+    <tbody>
+    {{range .Samples}}
+    <tr>
+      <td>{{timefmt .RecordedAt}}</td>
+      <td>{{printf "%.2f" .Load1}}</td>
+      <td>{{printf "%.1f" .MemUsedPct}}%</td>
+      <td>{{printf "%.1f" .DiskUsedPct}}%</td>
+      <td><span class="spark">{{printf "%.0f" .MemUsedPct}}</span></td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No samples yet. Metrics sampling runs in the background when <code>GOSHPANEL_METRICS=true</code>.</p>
+  {{end}}
+</div>
+{{end}}
+{{template "footer" .}}
