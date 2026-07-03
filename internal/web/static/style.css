@@ -192,4 +192,9 @@ pre.terminal-output {
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
 }
 .login-card .brand { color: var(--ink); margin-bottom: 0; }
+.login-card .brand { color: var(--ink); margin-bottom: 0; }
 .login-card .muted { margin-top: .25rem; margin-bottom: 1.25rem; }
+
+.badge-ok { background: #e7f6f0; color: #067647; padding: .15rem .5rem; border-radius: 4px; font-size: .8rem; }
+.badge-warn { background: #fdf1f0; color: #b42318; padding: .15rem .5rem; border-radius: 4px; font-size: .8rem; }
+.spark { font-family: ui-monospace, monospace; font-size: .75rem; color: var(--muted); }

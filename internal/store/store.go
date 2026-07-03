@@ -114,6 +114,38 @@ CREATE TABLE IF NOT EXISTS orchestrator_status (
 	last_applied   TIMESTAMP,
 	last_error     TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS fleet_nodes (
+	id            INTEGER PRIMARY KEY AUTOINCREMENT,
+	name          TEXT NOT NULL UNIQUE,
+	base_url      TEXT NOT NULL,
+	token         TEXT NOT NULL,
+	enabled       INTEGER NOT NULL DEFAULT 1,
+	last_seen_at  TIMESTAMP,
+	last_error    TEXT NOT NULL DEFAULT '',
+	created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS fleet_telemetry (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	node_id    INTEGER NOT NULL REFERENCES fleet_nodes(id) ON DELETE CASCADE,
+	payload    TEXT NOT NULL,
+	recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS fleet_commands (
+	id         INTEGER PRIMARY KEY AUTOINCREMENT,
+	node_id    INTEGER NOT NULL REFERENCES fleet_nodes(id) ON DELETE CASCADE,
+	action     TEXT NOT NULL,
+	status     TEXT NOT NULL DEFAULT 'pending',
+	result     TEXT NOT NULL DEFAULT '',
+	created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	completed_at TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS metric_samples (
+	id            INTEGER PRIMARY KEY AUTOINCREMENT,
+	load1         REAL NOT NULL,
+	mem_used_pct  REAL NOT NULL,
+	disk_used_pct REAL NOT NULL,
+	recorded_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `
 
 // Store wraps the SQLite database shared by all panel modules.

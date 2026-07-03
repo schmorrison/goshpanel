@@ -86,6 +86,9 @@ Legend:
 | Orchestrator (live apply) | Process calls | **Implemented** | Auto-write & reload Caddy, CoreDNS, maddy; systemd unit management |
 | Docker | Process calls (`docker` CLI) | **Implemented** | Containers, images, logs, run, compose stack up/down |
 | Micro Functions | Pure Go + bash | **Implemented** | HTTP-triggered bash scripts at `/fn/{name}?token=...` |
+| Fleet management | Pure Go HTTP API | **Implemented** | Controller polls/pushes telemetry; remote orchestrator control |
+| Metrics history | Pure Go (`/proc` + SQLite) | **Implemented** | Background sampling, `/metrics` history table |
+| SSL/TLS status | Pure Go (`crypto/x509`) | **Implemented** | PEM scanner with expiry warnings |
 
 ## Advanced
 

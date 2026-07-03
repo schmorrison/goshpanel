@@ -34,6 +34,12 @@ func newTestServer(t *testing.T) http.Handler {
 		SystemdUnitDir:       filepath.Join(dir, "systemd"),
 		FunctionsEnabled:     true,
 		DockerEnabled:        true,
+		FleetMode:            "controller",
+		FleetToken:           "test-fleet-token",
+		FleetNodeName:        "test-node",
+		FleetIntervalSeconds: 60,
+		MetricsEnabled:       true,
+		SSLCertDir:           filepath.Join(dir, "certs"),
 	}
 	st, err := store.Open(filepath.Join(dir, "test.db"))
 	if err != nil {
@@ -125,6 +131,9 @@ func TestAuthenticatedPagesRender(t *testing.T) {
 		"/orchestrator":  "Live orchestration",
 		"/docker":        "Docker",
 		"/functions":     "Create micro function",
+		"/fleet":         "Fleet controller",
+		"/metrics":       "Local metrics history",
+		"/ssl":           "Certificate scanner",
 	}
 	for path, want := range pages {
 		req := httptest.NewRequest("GET", path, nil)
@@ -296,6 +305,30 @@ func TestFunctionPublicInvoke(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("bad token: code=%d", rec.Code)
+	}
+}
+
+func TestFleetTelemetryAPI(t *testing.T) {
+	h := newTestServer(t)
+	req := httptest.NewRequest("GET", "/api/v1/fleet/telemetry", nil)
+	req.Header.Set("Authorization", "Bearer test-fleet-token")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("telemetry API: %d %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "test-node") {
+		t.Errorf("body = %s", rec.Body.String())
+	}
+}
+
+func TestFleetTelemetryAPIUnauthorized(t *testing.T) {
+	h := newTestServer(t)
+	req := httptest.NewRequest("GET", "/api/v1/fleet/telemetry", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("code = %d, want 401", rec.Code)
 	}
 }
 

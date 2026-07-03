@@ -27,6 +27,9 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
+| Fleet | `/fleet` | Multi-instance telemetry and remote control (controller/worker) |
+| Metrics | `/metrics` | Local host metrics history (load, memory, disk) |
+| SSL / TLS | `/ssl` | PEM certificate scanner with expiry status |
 
 ## Quick start
 

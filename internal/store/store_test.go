@@ -184,6 +184,21 @@ func TestFunctionsDockerSystemdOrchestrator(t *testing.T) {
 	if err != nil || len(statuses) != 1 || statuses[0].Component != "caddy" {
 		t.Fatalf("OrchestratorStatuses: %v %+v", err, statuses)
 	}
+
+	node, err := s.CreateFleetNode("w1", "http://localhost:4674", "tok")
+	if err != nil {
+		t.Fatalf("CreateFleetNode: %v", err)
+	}
+	if err := s.RecordFleetTelemetry(node.ID, []byte(`{"node_name":"w1"}`)); err != nil {
+		t.Fatalf("RecordFleetTelemetry: %v", err)
+	}
+	if err := s.RecordMetricSample(0.5, 10, 20); err != nil {
+		t.Fatalf("RecordMetricSample: %v", err)
+	}
+	samples, _ := s.MetricSamples(10)
+	if len(samples) != 1 {
+		t.Errorf("MetricSamples = %d", len(samples))
+	}
 }
 
 func TestAuditAndIPRules(t *testing.T) {

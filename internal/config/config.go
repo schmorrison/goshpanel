@@ -44,6 +44,19 @@ type Config struct {
 
 	// FunctionsEnabled toggles HTTP-triggered micro functions.
 	FunctionsEnabled bool
+
+	// FleetMode: standalone, controller, worker, or both.
+	FleetMode            string
+	FleetToken           string // agent API bearer token for this instance
+	FleetNodeName        string // identity reported in telemetry
+	FleetControllerURL   string // worker push target (http://controller:4674)
+	FleetIntervalSeconds int
+
+	// MetricsEnabled records local metric samples for /metrics history.
+	MetricsEnabled bool
+
+	// SSLCertDir is scanned by the SSL/TLS status page.
+	SSLCertDir string
 }
 
 // Load reads configuration from the given environment lookup function.
@@ -95,6 +108,23 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 
 	cfg.DockerEnabled = parseBool(get("DOCKER", "true"), "DOCKER", &err)
 	cfg.FunctionsEnabled = parseBool(get("FUNCTIONS", "true"), "FUNCTIONS", &err)
+
+	cfg.FleetMode = strings.ToLower(get("FLEET_MODE", "standalone"))
+	cfg.FleetToken = get("FLEET_TOKEN", "")
+	cfg.FleetNodeName = get("FLEET_NODE_NAME", "")
+	if cfg.FleetNodeName == "" {
+		cfg.FleetNodeName, _ = os.Hostname()
+	}
+	cfg.FleetControllerURL = get("FLEET_CONTROLLER_URL", "")
+	intervalStr := get("FLEET_INTERVAL_SECONDS", "60")
+	nInterval, aerr := strconv.Atoi(intervalStr)
+	if aerr != nil || nInterval <= 0 {
+		err = fmt.Errorf("invalid GOSHPANEL_FLEET_INTERVAL_SECONDS %q", intervalStr)
+	} else {
+		cfg.FleetIntervalSeconds = nInterval
+	}
+	cfg.MetricsEnabled = parseBool(get("METRICS", "true"), "METRICS", &err)
+	cfg.SSLCertDir = get("SSL_CERT_DIR", filepath.Join(cfg.DataDir, "certs"))
 
 	if err != nil {
 		return Config{}, err

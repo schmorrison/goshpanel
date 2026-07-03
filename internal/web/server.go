@@ -18,6 +18,7 @@ import (
 	"github.com/schmorrison/goshpanel/internal/config"
 	"github.com/schmorrison/goshpanel/internal/docker"
 	"github.com/schmorrison/goshpanel/internal/files"
+	"github.com/schmorrison/goshpanel/internal/fleet"
 	"github.com/schmorrison/goshpanel/internal/fn"
 	"github.com/schmorrison/goshpanel/internal/logs"
 	"github.com/schmorrison/goshpanel/internal/orchestrator"
@@ -47,6 +48,8 @@ type Server struct {
 	orch    *orchestrator.Service
 	docker  *docker.Service
 	fns     *fn.Service
+	fleet   *fleet.Controller
+	collector *fleet.Collector
 
 	tmpl *template.Template
 	mux  *http.ServeMux
@@ -78,6 +81,13 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 			return t.Format("2006-01-02 15:04")
 		},
 		"durfmt":     formatDuration,
+		"printf":     fmt.Sprintf,
+		"nodeOnline": func(last *time.Time, interval int) bool {
+			if last == nil {
+				return false
+			}
+			return time.Since(*last) < time.Duration(interval*2)*time.Second
+		},
 	}
 	tmpl, err := template.New("").Funcs(funcs).ParseFS(templateFS, "templates/*.html")
 	if err != nil {
@@ -116,6 +126,10 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 			return nil, err
 		}
 		s.fns = fnSvc
+	}
+	s.collector = fleet.NewCollector(st, cfg.FleetNodeName, fileSvc.Root())
+	if fleet.IsController(fleet.ParseMode(cfg.FleetMode)) {
+		s.fleet = fleet.NewController(st)
 	}
 
 	if err := s.auth.Bootstrap(cfg.BootstrapUser, cfg.BootstrapPassword); err != nil {
@@ -213,6 +227,20 @@ func (s *Server) routes() {
 	// Public function invoke — token auth, no panel session required.
 	s.mux.HandleFunc("GET /fn/{name}", s.handleFunctionInvokePublic)
 	s.mux.HandleFunc("POST /fn/{name}", s.handleFunctionInvokePublic)
+
+	// Fleet agent API (Bearer GOSHPANEL_FLEET_TOKEN).
+	s.mux.HandleFunc("GET /api/v1/fleet/telemetry", s.fleetAuth(s.handleFleetTelemetryAPI))
+	s.mux.HandleFunc("POST /api/v1/fleet/control", s.fleetAuth(s.handleFleetControlAPI))
+	s.mux.HandleFunc("POST /api/v1/fleet/ingest", s.handleFleetIngestAPI)
+
+	s.mux.HandleFunc("GET /fleet", s.requireAuth(s.handleFleetPage))
+	s.mux.HandleFunc("POST /fleet/nodes/create", s.requireAuth(s.handleFleetNodeCreate))
+	s.mux.HandleFunc("POST /fleet/nodes/delete", s.requireAuth(s.handleFleetNodeDelete))
+	s.mux.HandleFunc("POST /fleet/poll", s.requireAuth(s.handleFleetPoll))
+	s.mux.HandleFunc("POST /fleet/command", s.requireAuth(s.handleFleetCommand))
+
+	s.mux.HandleFunc("GET /metrics", s.requireAuth(s.handleMetricsPage))
+	s.mux.HandleFunc("GET /ssl", s.requireAuth(s.handleSSLPage))
 }
 
 // Handler returns the fully wrapped HTTP handler.
