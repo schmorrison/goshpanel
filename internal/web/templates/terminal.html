@@ -1,0 +1,25 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{if .Enabled}}
+<form class="card" method="post" action="/terminal/run">
+  <h2>Run command</h2>
+  <p class="muted">Commands run via <code>bash -c</code> in <code>{{.Workdir}}</code> with a 60 second timeout.</p>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <div class="form-row">
+    <input type="text" name="command" placeholder="ls -la" value="{{.Command}}" required class="grow mono" autofocus>
+    <button type="submit" class="btn btn-primary">Run</button>
+  </div>
+</form>
+{{if .Result}}
+<div class="card">
+  <h2>$ {{.Result.Command}}</h2>
+  <p class="muted">exit {{.Result.ExitCode}} · {{.Result.Elapsed}}{{if .Result.TimedOut}} · <strong>timed out</strong>{{end}}</p>
+  <pre class="terminal-output">{{.Result.Output}}</pre>
+</div>
+{{end}}
+{{else}}
+<div class="card"><p class="muted">The command runner is disabled. Set <code>GOSHPANEL_COMMAND_RUNNER=true</code> to enable it.</p></div>
+{{end}}
+{{end}}
+{{template "footer" .}}
