@@ -2,9 +2,11 @@ package web
 
 import (
 	"errors"
+	"html/template"
 	"net/http"
 
 	"github.com/schmorrison/goshpanel/internal/auth"
+	"github.com/schmorrison/goshpanel/internal/metricsviz"
 	"github.com/schmorrison/goshpanel/internal/system"
 )
 
@@ -43,9 +45,13 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 // --- dashboard ---
 
 type dashboardData struct {
-	Stats     system.Stats
-	Counts    map[string]int
-	FilesRoot string
+	Stats      system.Stats
+	Counts     map[string]int
+	FilesRoot  string
+	LoadSpark  template.HTML
+	MemSpark   template.HTML
+	DiskSpark  template.HTML
+	HasHistory bool
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
@@ -62,9 +68,21 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
 	if conns, err := s.store.DatabaseConns(); err == nil {
 		counts["databases"] = len(conns)
 	}
-	s.render(w, r, "dashboard.html", "Dashboard", "dashboard", dashboardData{
-		Stats:     system.Snapshot(s.files.Root()),
+
+	stats := system.Snapshot(s.files.Root())
+	data := dashboardData{
+		Stats:     stats,
 		Counts:    counts,
 		FilesRoot: s.files.Root(),
-	})
+	}
+
+	if samples, err := s.store.MetricSamples(48); err == nil && len(samples) > 1 {
+		data.HasHistory = true
+		loadYMax := metricsviz.LoadYMax(samples, stats.NumCPU)
+		data.LoadSpark = metricsviz.Sparkline(metricsviz.SamplesLoad(samples), loadYMax, 280, 64, "#0f766e")
+		data.MemSpark = metricsviz.Sparkline(metricsviz.SamplesMem(samples), 100, 280, 64, "#2563eb")
+		data.DiskSpark = metricsviz.Sparkline(metricsviz.SamplesDisk(samples), 100, 280, 64, "#7c3aed")
+	}
+
+	s.render(w, r, "dashboard.html", "Dashboard", "dashboard", data)
 }

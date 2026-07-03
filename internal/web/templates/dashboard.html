@@ -23,6 +23,33 @@
   </div>
 </div>
 
+{{if .HasHistory}}
+<div class="card">
+  <div class="card-head">
+    <h2>Performance trend</h2>
+    <a href="/metrics" class="btn btn-sm">Open performance dashboard →</a>
+  </div>
+  <div class="grid grid-3 perf-spark-grid">
+    <div class="perf-spark">
+      <div class="perf-spark-label">Load</div>
+      {{.LoadSpark}}
+    </div>
+    <div class="perf-spark">
+      <div class="perf-spark-label">Memory</div>
+      {{.MemSpark}}
+    </div>
+    <div class="perf-spark">
+      <div class="perf-spark-label">Disk</div>
+      {{.DiskSpark}}
+    </div>
+  </div>
+</div>
+{{else}}
+<div class="card">
+  <p class="muted">Historical charts will appear after metrics sampling runs. <a href="/metrics">View performance dashboard</a></p>
+</div>
+{{end}}
+
 <div class="grid grid-2">
   <div class="card">
     <h2>Server information</h2>

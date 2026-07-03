@@ -28,7 +28,7 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
 | Fleet | `/fleet` | Multi-instance telemetry and remote control (controller/worker) |
-| Metrics | `/metrics` | Local host metrics history (load, memory, disk) |
+| Metrics | `/metrics` | Performance dashboard: live gauges, SVG history charts (1h–7d), sampled metrics |
 | SSL / TLS | `/ssl` | PEM certificate scanner with expiry status |
 
 ## Quick start

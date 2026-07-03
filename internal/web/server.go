@@ -21,6 +21,7 @@ import (
 	"github.com/schmorrison/goshpanel/internal/fleet"
 	"github.com/schmorrison/goshpanel/internal/fn"
 	"github.com/schmorrison/goshpanel/internal/logs"
+	"github.com/schmorrison/goshpanel/internal/metricsviz"
 	"github.com/schmorrison/goshpanel/internal/orchestrator"
 	"github.com/schmorrison/goshpanel/internal/runner"
 	"github.com/schmorrison/goshpanel/internal/security"
@@ -81,6 +82,8 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 			return t.Format("2006-01-02 15:04")
 		},
 		"durfmt":     formatDuration,
+		"gaugeLevel": metricsviz.GaugeLevel,
+		"loadUtil":   metricsviz.LoadUtilPct,
 		"printf":     fmt.Sprintf,
 		"nodeOnline": func(last *time.Time, interval int) bool {
 			if last == nil {

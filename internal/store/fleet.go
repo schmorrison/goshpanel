@@ -224,8 +224,18 @@ func (s *Store) RecordMetricSample(load1, memPct, diskPct float64) error {
 
 // MetricSamples returns recent local metric samples, oldest first.
 func (s *Store) MetricSamples(limit int) ([]MetricSample, error) {
-	rows, err := s.db.Query(
-		`SELECT id, load1, mem_used_pct, disk_used_pct, recorded_at FROM metric_samples ORDER BY id DESC LIMIT ?`, limit)
+	return s.metricSamplesQuery(`SELECT id, load1, mem_used_pct, disk_used_pct, recorded_at FROM metric_samples ORDER BY id DESC LIMIT ?`, limit)
+}
+
+// MetricSamplesSince returns samples recorded after since, oldest first.
+func (s *Store) MetricSamplesSince(since time.Time, limit int) ([]MetricSample, error) {
+	return s.metricSamplesQuery(
+		`SELECT id, load1, mem_used_pct, disk_used_pct, recorded_at FROM metric_samples
+		 WHERE recorded_at >= ? ORDER BY id DESC LIMIT ?`, since.UTC(), limit)
+}
+
+func (s *Store) metricSamplesQuery(query string, args ...any) ([]MetricSample, error) {
+	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -238,11 +248,13 @@ func (s *Store) MetricSamples(limit int) ([]MetricSample, error) {
 		}
 		out = append(out, m)
 	}
-	// reverse to oldest-first for charts
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
 		out[i], out[j] = out[j], out[i]
 	}
-	return out, rows.Err()
+	return out, nil
 }
 
 func scanFleetNode(row *sql.Row) (FleetNode, error) {

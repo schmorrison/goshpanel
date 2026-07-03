@@ -135,7 +135,7 @@ func TestAuthenticatedPagesRender(t *testing.T) {
 		"/docker":        "Docker",
 		"/functions":     "Create micro function",
 		"/fleet":         "Fleet controller",
-		"/metrics":       "Local metrics history",
+		"/metrics":       "Performance",
 		"/ssl":           "Certificate scanner",
 	}
 	for path, want := range pages {
