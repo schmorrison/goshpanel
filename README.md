@@ -27,8 +27,10 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
-| Fleet | `/fleet` | Multi-instance telemetry and remote control (controller/worker) |
-| Metrics | `/metrics` | Performance dashboard: live gauges, SVG history charts (1h–7d), sampled metrics |
+| Fleet | `/fleet` | Multi-instance telemetry, per-node performance charts, remote control |
+| Performance | `/metrics` | Live gauges, SVG history charts (1h–7d), sampled metrics |
+| Analytics | `/analytics` | Caddy JSON access log stats, top paths, hourly chart |
+| SFTP | `/sftp` | Sandboxed SFTP server info (`GOSHPANEL_SFTP=true`) |
 | SSL / TLS | `/ssl` | PEM certificate scanner with expiry status |
 
 ## Quick start
@@ -73,6 +75,11 @@ Everything is an environment variable:
 | `GOSHPANEL_FLEET_CONTROLLER_URL` | — | Worker push/enroll target (`http://main:4674`) |
 | `GOSHPANEL_FLEET_INTERVAL_SECONDS` | `60` | Poll/push/metrics interval |
 | `GOSHPANEL_METRICS` | `true` | Record local metrics samples |
+| `GOSHPANEL_ANALYTICS` | `true` | Ingest Caddy JSON access logs for `/analytics` |
+| `GOSHPANEL_CADDY_ACCESS_LOG` | `data/generated/caddy/access.log` | Caddy access log path (written into Caddyfile) |
+| `GOSHPANEL_SFTP` | `false` | Enable sandboxed SFTP on `GOSHPANEL_SFTP_ADDR` |
+| `GOSHPANEL_SFTP_ADDR` | `:2222` | SFTP listen address |
+| `GOSHPANEL_SFTP_HOST_KEY` | `data/sftp_host_key` | SSH host key (auto-generated) |
 | `GOSHPANEL_SSL_CERT_DIR` | `data/certs` | Directory scanned for PEM certificates |
 
 ### Fleet setup

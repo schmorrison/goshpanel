@@ -1,3 +1,28 @@
+{{if eq .Data.Step "totp"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-factor authentication · GoshPanel</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+<div class="login-card">
+  <div class="brand brand-lg">Gosh<span>Panel</span></div>
+  <p class="muted">Enter the 6-digit code from your authenticator app.</p>
+  {{if .Error}}<div class="flash flash-err">{{.Error}}</div>{{end}}
+  <form method="post" action="/login/totp">
+    <input type="hidden" name="pending_token" value="{{.Data.PendingToken}}">
+    <label>Authenticator code
+      <input type="text" name="totp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+    </label>
+    <button type="submit" class="btn btn-primary btn-block">Verify</button>
+  </form>
+</div>
+</body>
+</html>
+{{else}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,3 +48,4 @@
 </div>
 </body>
 </html>
+{{end}}

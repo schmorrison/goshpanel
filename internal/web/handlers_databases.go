@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -11,10 +12,11 @@ import (
 type databasesData struct {
 	Conns []store.DatabaseConn
 
-	// Query console state (set after POST /databases/query re-renders).
 	ActiveConn store.DatabaseConn
 	SQL        string
+	WriteMode  bool
 	Result     *dbmanager.QueryResult
+	ExecResult *dbmanager.ExecResult
 	QueryErr   string
 	Tables     []string
 }
@@ -27,7 +29,6 @@ func (s *Server) handleDatabasesPage(w http.ResponseWriter, r *http.Request) {
 	}
 	data := databasesData{Conns: conns}
 
-	// Optional ?conn=ID opens the query console for that connection.
 	if idStr := r.URL.Query().Get("conn"); idStr != "" {
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err == nil {
@@ -93,17 +94,33 @@ func (s *Server) handleDatabaseQuery(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sqlText := r.FormValue("sql")
-	data := databasesData{Conns: conns, ActiveConn: conn, SQL: sqlText}
+	writeMode := r.FormValue("write_mode") == "1"
+	if writeMode && currentUser(r).Role != "admin" {
+		redirectError(w, r, "/databases?conn="+strconv.FormatInt(id, 10), errors.New("only admins can run write queries"))
+		return
+	}
+
+	data := databasesData{Conns: conns, ActiveConn: conn, SQL: sqlText, WriteMode: writeMode}
 	if tables, err := dbmanager.Tables(r.Context(), conn.Driver, conn.DSN); err == nil {
 		data.Tables = tables
 	}
 
-	res, err := dbmanager.Query(r.Context(), conn.Driver, conn.DSN, sqlText, 500)
-	if err != nil {
-		data.QueryErr = err.Error()
+	if writeMode {
+		res, err := dbmanager.Exec(r.Context(), conn.Driver, conn.DSN, sqlText)
+		if err != nil {
+			data.QueryErr = err.Error()
+		} else {
+			data.ExecResult = &res
+		}
+		s.audit(r, "databases.exec", conn.Name)
 	} else {
-		data.Result = &res
+		res, err := dbmanager.Query(r.Context(), conn.Driver, conn.DSN, sqlText, 500)
+		if err != nil {
+			data.QueryErr = err.Error()
+		} else {
+			data.Result = &res
+		}
+		s.audit(r, "databases.query", conn.Name)
 	}
-	s.audit(r, "databases.query", conn.Name)
 	s.render(w, r, "databases.html", "Databases", "databases", data)
 }

@@ -17,7 +17,7 @@ Legend:
 | File download | Pure Go | **Implemented** | `http.ServeContent` |
 | Backup / Backup Wizard | Pure Go (`archive/tar`, `compress/gzip`) | **Implemented** | Create, list, download, restore, delete tar.gz archives |
 | Disk Usage | Pure Go (`syscall.Statfs`) | **Implemented** | On dashboard |
-| FTP Accounts / FTP Connections | Go FTP/SFTP servers exist (e.g. `pkg/sftp`) | Planned | SFTP preferred over FTP today |
+| FTP Accounts / FTP Connections | Go FTP/SFTP servers exist (e.g. `pkg/sftp`) | **Implemented (SFTP)** | Panel-user auth, chrooted to files sandbox |
 | Images (thumbnailer/converter) | Pure Go (`image` stdlib) | Planned | Low priority |
 | Directory Privacy (htpasswd) | Pure Go | Planned | Would render Caddy `basic_auth` blocks |
 | Git Version Control | Process calls to `git` | Planned | `go-git` is a pure-Go option |
@@ -30,7 +30,7 @@ Legend:
 | MySQL/MariaDB management | Pure Go driver (`go-sql-driver/mysql`) | **Implemented** | Saved connections, table list, read-only query console |
 | PostgreSQL management | Pure Go driver (`jackc/pgx`) | **Implemented** | Same console |
 | SQLite management | Pure Go driver (`modernc.org/sqlite`, no cgo) | **Implemented** | Also used for the panel's own state |
-| phpMyAdmin equivalent | Pure Go UI | **Implemented (read-only)** | Write queries planned behind an explicit opt-in |
+| phpMyAdmin equivalent | Pure Go UI | **Implemented** | Read-only by default; admin opt-in writes with denylist |
 | Database user/privilege management | Pure Go (SQL statements) | Planned | `CREATE USER` / `GRANT` runner |
 | Remote MySQL (access hosts) | Pure Go | Planned | |
 
@@ -86,8 +86,10 @@ Legend:
 | Orchestrator (live apply) | Process calls | **Implemented** | Auto-write & reload Caddy, CoreDNS, maddy; systemd unit management |
 | Docker | Process calls (`docker` CLI) | **Implemented** | Containers, images, logs, run, compose stack up/down |
 | Micro Functions | Pure Go + bash | **Implemented** | HTTP-triggered bash scripts at `/fn/{name}?token=...` |
-| Fleet management | Pure Go HTTP API | **Implemented** | JWT enroll tokens; controller polls/pushes telemetry; remote orchestrator control |
+| Fleet management | Pure Go HTTP API | **Implemented** | JWT enroll tokens; per-node performance charts; remote orchestrator control |
 | Metrics history | Pure Go (`/proc` + SQLite) | **Implemented** | Performance dashboard with SVG charts, gauges, 1h–7d ranges |
+| Access log analytics | Caddy JSON log ingest | **Implemented** | `/analytics` — requests, status codes, top paths |
+| Two-factor auth (TOTP) | `pquerna/otp` | **Implemented** | Optional per-user 2FA on login; enroll on `/security` |
 | SSL/TLS status | Pure Go (`crypto/x509`) | **Implemented** | PEM scanner with expiry warnings |
 
 ## Advanced

@@ -25,8 +25,10 @@ func TestRenderCaddyfile(t *testing.T) {
 		{Name: "static.example.com", Root: "/srv/static"},
 		{Name: "app.example.com", Upstream: "localhost:3000"},
 		{Name: "both.example.com", Root: "/srv/both", Upstream: "localhost:4000"},
-	})
+	}, "/var/log/caddy/access.log")
 	for _, want := range []string{
+		"format json",
+		"/var/log/caddy/access.log",
 		"static.example.com {",
 		"root * /srv/static",
 		"file_server",

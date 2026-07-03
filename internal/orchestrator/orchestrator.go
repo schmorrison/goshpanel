@@ -20,10 +20,11 @@ import (
 
 // Paths holds on-disk locations for generated configs.
 type Paths struct {
-	CaddyConfig  string
-	CoreDNSDir   string
-	MaddyConfig  string
-	SystemdDir   string
+	CaddyConfig     string
+	CaddyAccessLog  string
+	CoreDNSDir      string
+	MaddyConfig     string
+	SystemdDir      string
 }
 
 // Service regenerates and applies infrastructure configs.
@@ -64,7 +65,7 @@ func (s *Service) ApplyCaddy(ctx context.Context) Result {
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
 	}
-	if err := domains.WriteCaddyfile(domainsList, s.paths.CaddyConfig); err != nil {
+	if err := domains.WriteCaddyfile(domainsList, s.paths.CaddyConfig, s.paths.CaddyAccessLog); err != nil {
 		res.Message = err.Error()
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res

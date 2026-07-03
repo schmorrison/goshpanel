@@ -30,7 +30,7 @@ func TestBootstrapAndLogin(t *testing.T) {
 		t.Fatalf("second Bootstrap: %v", err)
 	}
 
-	sess, err := svc.Login("admin", "hunter2hunter2")
+	sess, _, err := svc.Login("admin", "hunter2hunter2")
 	if err != nil {
 		t.Fatalf("Login: %v", err)
 	}
@@ -43,10 +43,10 @@ func TestBootstrapAndLogin(t *testing.T) {
 		t.Fatalf("Authenticate: %v %+v", err, u)
 	}
 
-	if _, err := svc.Login("admin", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := svc.Login("admin", "wrong"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("wrong password: %v", err)
 	}
-	if _, err := svc.Login("ghost", "hunter2hunter2"); !errors.Is(err, ErrInvalidCredentials) {
+	if _, _, err := svc.Login("ghost", "hunter2hunter2"); !errors.Is(err, ErrInvalidCredentials) {
 		t.Errorf("unknown user: %v", err)
 	}
 
@@ -87,10 +87,10 @@ func TestChangePassword(t *testing.T) {
 	if err := svc.ChangePassword(u.ID, "newpassword"); err != nil {
 		t.Fatalf("ChangePassword: %v", err)
 	}
-	if _, err := svc.Login("carol", "originalpass"); err == nil {
+	if _, _, err := svc.Login("carol", "originalpass"); err == nil {
 		t.Error("old password still works")
 	}
-	if _, err := svc.Login("carol", "newpassword"); err != nil {
+	if _, _, err := svc.Login("carol", "newpassword"); err != nil {
 		t.Errorf("new password rejected: %v", err)
 	}
 }

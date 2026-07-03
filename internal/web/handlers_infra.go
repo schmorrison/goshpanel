@@ -194,9 +194,11 @@ func (s *Server) handleTerminalRun(w http.ResponseWriter, r *http.Request) {
 // --- security ---
 
 type securityData struct {
-	Users   []store.User
-	IPRules []store.IPRule
-	Audit   []store.AuditEntry
+	Users       []store.User
+	IPRules     []store.IPRule
+	Audit       []store.AuditEntry
+	TOTPEnabled bool
+	TOTPURI     string
 }
 
 func (s *Server) handleSecurityPage(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +217,10 @@ func (s *Server) handleSecurityPage(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/", err)
 		return
 	}
-	s.render(w, r, "security.html", "Security", "security", securityData{
-		Users: users, IPRules: rules, Audit: audit,
-	})
+	me := currentUser(r)
+	data := securityData{Users: users, IPRules: rules, Audit: audit, TOTPEnabled: me.TOTPEnabled}
+	if uri := r.URL.Query().Get("totp_uri"); uri != "" {
+		data.TOTPURI = uri
+	}
+	s.render(w, r, "security.html", "Security", "security", data)
 }

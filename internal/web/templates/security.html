@@ -41,6 +41,29 @@
       <input type="password" name="password" placeholder="new password (8+ chars)" minlength="8" required>
       <button type="submit" class="btn">Change</button>
     </form>
+    <h2>Two-factor authentication</h2>
+    {{if .TOTPEnabled}}
+    <p class="muted">2FA is <span class="badge-ok">enabled</span> on your account.</p>
+    <form class="form-row" method="post" action="/security/2fa/disable">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="totp_code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+      <button type="submit" class="btn btn-danger">Disable 2FA</button>
+    </form>
+    {{else if .TOTPURI}}
+    <p class="muted">Add this secret to your authenticator app:</p>
+    <pre class="code-block">{{.TOTPURI}}</pre>
+    <form class="form-row" method="post" action="/security/2fa/enable">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <input type="text" name="totp_code" placeholder="6-digit code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+      <button type="submit" class="btn btn-primary">Confirm &amp; enable</button>
+    </form>
+    {{else}}
+    <p class="muted">Protect your account with a TOTP authenticator app.</p>
+    <form method="post" action="/security/2fa/setup">
+      <input type="hidden" name="csrf_token" value="{{$csrf}}">
+      <button type="submit" class="btn">Set up 2FA</button>
+    </form>
+    {{end}}
   </div>
 
   <div class="card">

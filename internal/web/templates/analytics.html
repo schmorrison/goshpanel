@@ -1,0 +1,43 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="perf-toolbar">
+  <p class="muted">Caddy JSON access log · <code>{{.LogPath}}</code></p>
+  <div class="perf-range">
+    <a href="/analytics?range=1h" class="btn btn-sm {{if eq .Range "1h"}}btn-primary{{end}}">1h</a>
+    <a href="/analytics?range=6h" class="btn btn-sm {{if eq .Range "6h"}}btn-primary{{end}}">6h</a>
+    <a href="/analytics?range=24h" class="btn btn-sm {{if eq .Range "24h"}}btn-primary{{end}}">24h</a>
+    <a href="/analytics?range=7d" class="btn btn-sm {{if eq .Range "7d"}}btn-primary{{end}}">7d</a>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  <div class="card stat"><div class="stat-label">Requests</div><div class="stat-value">{{.Summary.TotalRequests}}</div><div class="muted">{{.RangeLabel}}</div></div>
+  <div class="card stat"><div class="stat-label">Transferred</div><div class="stat-value">{{humanBytes .Summary.TotalBytes}}</div><div class="muted">response bytes</div></div>
+  <div class="card stat"><div class="stat-label">2xx / 3xx</div><div class="stat-value">{{.Summary.Status2xx}} / {{.Summary.Status3xx}}</div><div class="muted">success / redirect</div></div>
+  <div class="card stat"><div class="stat-label">4xx / 5xx</div><div class="stat-value">{{.Summary.Status4xx}} / {{.Summary.Status5xx}}</div><div class="muted">client / server errors</div></div>
+</div>
+
+{{if .Chart.SVG}}
+<div class="card perf-chart-card">
+  <div class="perf-chart-head"><h2>Requests per hour</h2><span class="perf-now">{{.Summary.TotalRequests}}</span></div>
+  {{.Chart.SVG}}
+</div>
+{{else}}
+<div class="card"><p class="muted">No access log data yet. Apply the orchestrator Caddy config to enable JSON logging, then wait for traffic.</p></div>
+{{end}}
+
+<div class="card">
+  <h2>Top paths · {{.RangeLabel}}</h2>
+  <table class="list">
+    <thead><tr><th>Path</th><th>Requests</th></tr></thead>
+    <tbody>
+    {{range .TopPaths}}
+    <tr><td class="wrap"><code>{{.Path}}</code></td><td>{{.Count}}</td></tr>
+    {{else}}
+    <tr><td colspan="2" class="muted">No requests recorded in this window.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}

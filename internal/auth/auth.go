@@ -63,41 +63,6 @@ func (s *Service) CreateUser(username, password, role string) (store.User, error
 	return s.store.CreateUser(username, hash, role)
 }
 
-// Login verifies credentials and creates a session.
-func (s *Service) Login(username, password string) (store.Session, error) {
-	u, err := s.store.UserByUsername(strings.TrimSpace(username))
-	if errors.Is(err, store.ErrNotFound) {
-		// Burn time to keep failure timing roughly uniform.
-		crypto.VerifyPassword("argon2id$3$65536$4$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", password)
-		return store.Session{}, ErrInvalidCredentials
-	}
-	if err != nil {
-		return store.Session{}, err
-	}
-	if !crypto.VerifyPassword(u.PasswordHash, password) {
-		return store.Session{}, ErrInvalidCredentials
-	}
-
-	token, err := crypto.RandomToken()
-	if err != nil {
-		return store.Session{}, err
-	}
-	csrf, err := crypto.RandomToken()
-	if err != nil {
-		return store.Session{}, err
-	}
-	sess := store.Session{
-		Token:     token,
-		UserID:    u.ID,
-		CSRFToken: csrf,
-		ExpiresAt: time.Now().Add(s.sessionTTL),
-	}
-	if err := s.store.CreateSession(sess); err != nil {
-		return store.Session{}, err
-	}
-	return sess, nil
-}
-
 // Authenticate resolves a session token to its user.
 func (s *Service) Authenticate(token string) (store.User, store.Session, error) {
 	sess, err := s.store.SessionByToken(token)

@@ -7,17 +7,33 @@ import (
 
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/metricsviz"
+	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/system"
 )
+
+type loginData struct {
+	Step         string
+	PendingToken string
+	Username     string
+}
 
 // --- login / logout ---
 
 func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
-	s.render(w, r, "login.html", "Sign in", "", nil)
+	data := loginData{}
+	if token := r.URL.Query().Get("pending"); token != "" {
+		data.Step = "totp"
+		data.PendingToken = token
+	}
+	s.render(w, r, "login.html", "Sign in", "", data)
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	sess, err := s.auth.Login(r.FormValue("username"), r.FormValue("password"))
+	sess, pending, err := s.auth.Login(r.FormValue("username"), r.FormValue("password"))
+	if errors.Is(err, auth.ErrMFARequired) && pending != nil {
+		http.Redirect(w, r, "/login?pending="+pending.Token, http.StatusSeeOther)
+		return
+	}
 	if err != nil {
 		if !errors.Is(err, auth.ErrInvalidCredentials) {
 			s.log.Error("login failed", "err", err)
@@ -25,9 +41,29 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/login", auth.ErrInvalidCredentials)
 		return
 	}
+	s.finishLogin(w, r, sess, r.FormValue("username"))
+}
+
+func (s *Server) handleLoginTOTP(w http.ResponseWriter, r *http.Request) {
+	sess, err := s.auth.CompleteMFA(r.FormValue("pending_token"), r.FormValue("totp_code"))
+	if err != nil {
+		redirectError(w, r, "/login", auth.ErrInvalidCredentials)
+		return
+	}
+	s.finishLogin(w, r, sess, "")
+}
+
+func (s *Server) finishLogin(w http.ResponseWriter, r *http.Request, sess store.Session, username string) {
 	s.setSessionCookie(w, sess)
-	if err := s.store.AppendAudit(r.FormValue("username"), "login", "signed in"); err != nil {
-		s.log.Error("audit append failed", "err", err)
+	if username == "" {
+		if u, _, err := s.auth.Authenticate(sess.Token); err == nil {
+			username = u.Username
+		}
+	}
+	if username != "" {
+		if err := s.store.AppendAudit(username, "login", "signed in"); err != nil {
+			s.log.Error("audit append failed", "err", err)
+		}
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

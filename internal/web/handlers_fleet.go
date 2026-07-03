@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/schmorrison/goshpanel/internal/fleet"
+	"github.com/schmorrison/goshpanel/internal/metricsviz"
 	"github.com/schmorrison/goshpanel/internal/store"
 )
 
@@ -15,6 +16,10 @@ type fleetNodeRow struct {
 	Node      store.FleetNode
 	Telemetry *fleet.Telemetry
 	Commands  []store.FleetCommand
+	LoadChart metricsviz.Chart
+	MemChart  metricsviz.Chart
+	DiskChart metricsviz.Chart
+	HasCharts bool
 }
 
 type fleetData struct {
@@ -77,6 +82,10 @@ func (s *Server) handleFleetPage(w http.ResponseWriter, r *http.Request) {
 		}
 		if cmds, err := s.store.FleetCommands(n.ID, 5); err == nil {
 			row.Commands = cmds
+		}
+		if history, err := s.store.FleetTelemetryHistory(n.ID, 60); err == nil && len(history) > 1 {
+			row.LoadChart, row.MemChart, row.DiskChart = metricsviz.ChartsFromFleetHistory(history, 0)
+			row.HasCharts = true
 		}
 		rows = append(rows, row)
 	}

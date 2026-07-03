@@ -78,7 +78,7 @@ func (s *Server) handleCaddyfile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="Caddyfile"`)
-	w.Write([]byte(domains.RenderCaddyfile(list)))
+	w.Write([]byte(domains.RenderCaddyfile(list, s.cfg.CaddyAccessLog)))
 }
 
 func (s *Server) handleZoneFile(w http.ResponseWriter, r *http.Request) {

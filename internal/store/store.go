@@ -170,7 +170,12 @@ func Open(path string) (*Store, error) {
 		db.Close()
 		return nil, fmt.Errorf("apply schema: %w", err)
 	}
-	return &Store{db: db}, nil
+	st := &Store{db: db}
+	if err := st.migrate(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return st, nil
 }
 
 // Close closes the underlying database.

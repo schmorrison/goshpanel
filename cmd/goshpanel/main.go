@@ -11,8 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/schmorrison/goshpanel/internal/analytics"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/files"
 	"github.com/schmorrison/goshpanel/internal/fleet"
+	"github.com/schmorrison/goshpanel/internal/sftpserver"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/web"
 )
@@ -43,10 +46,39 @@ func main() {
 	defer cancel()
 	fleet.StartBackground(ctx, cfg, st, logger)
 
+	if cfg.AnalyticsEnabled {
+		interval := time.Duration(cfg.FleetIntervalSeconds) * time.Second
+		if interval <= 0 {
+			interval = time.Minute
+		}
+		analytics.StartIngestor(ctx, st, cfg.CaddyAccessLog, interval, logger)
+	}
+
+	if cfg.SFTPEnabled {
+		fileSvc, err := files.New(cfg.FilesRoot)
+		if err != nil {
+			logger.Error("sftp files root", "err", err)
+			os.Exit(1)
+		}
+		sftpSrv, err := sftpserver.New(cfg.SFTPAddr, cfg.SFTPHostKeyPath, fileSvc, st, logger)
+		if err != nil {
+			logger.Error("sftp server", "err", err)
+			os.Exit(1)
+		}
+		go func() {
+			if err := sftpSrv.Run(ctx); err != nil {
+				logger.Error("sftp stopped", "err", err)
+			}
+		}()
+	}
+
 	go func() {
 		for range time.Tick(time.Hour) {
 			if err := st.PruneSessions(); err != nil {
 				logger.Error("prune sessions", "err", err)
+			}
+			if err := st.PruneLoginPending(); err != nil {
+				logger.Error("prune login pending", "err", err)
 			}
 		}
 	}()
@@ -58,7 +90,7 @@ func main() {
 	}
 
 	go func() {
-		logger.Info("goshpanel listening", "addr", cfg.Addr, "fleet_mode", cfg.FleetMode, "node", cfg.FleetNodeName)
+		logger.Info("goshpanel listening", "addr", cfg.Addr, "fleet_mode", cfg.FleetMode, "node", cfg.FleetNodeName, "sftp", cfg.SFTPEnabled)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server stopped", "err", err)
 			os.Exit(1)

@@ -60,6 +60,15 @@ type Config struct {
 
 	// SSLCertDir is scanned by the SSL/TLS status page.
 	SSLCertDir string
+
+	// AnalyticsEnabled ingests Caddy JSON access logs for /analytics.
+	AnalyticsEnabled bool
+	CaddyAccessLog   string
+
+	// SFTPEnabled starts a sandboxed SFTP server for panel users.
+	SFTPEnabled    bool
+	SFTPAddr       string
+	SFTPHostKeyPath string
 }
 
 // Load reads configuration from the given environment lookup function.
@@ -131,6 +140,11 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 	}
 	cfg.MetricsEnabled = parseBool(get("METRICS", "true"), "METRICS", &err)
 	cfg.SSLCertDir = get("SSL_CERT_DIR", filepath.Join(cfg.DataDir, "certs"))
+	cfg.AnalyticsEnabled = parseBool(get("ANALYTICS", "true"), "ANALYTICS", &err)
+	cfg.CaddyAccessLog = get("CADDY_ACCESS_LOG", filepath.Join(cfg.DataDir, "generated", "caddy", "access.log"))
+	cfg.SFTPEnabled = parseBool(get("SFTP", "false"), "SFTP", &err)
+	cfg.SFTPAddr = get("SFTP_ADDR", ":2222")
+	cfg.SFTPHostKeyPath = get("SFTP_HOST_KEY", filepath.Join(cfg.DataDir, "sftp_host_key"))
 
 	if err != nil {
 		return Config{}, err

@@ -90,6 +90,14 @@
     <tr><th>Domains</th><td>{{.Telemetry.Counts.Domains}}</td><th>Mailboxes</th><td>{{.Telemetry.Counts.Mailboxes}}</td></tr>
     <tr><th>Cron</th><td>{{.Telemetry.Counts.CronJobs}}</td><th>Functions</th><td>{{.Telemetry.Counts.Functions}}</td></tr>
   </table>
+  {{if .HasCharts}}
+  <h3>Performance history</h3>
+  <div class="grid grid-3 perf-spark-grid">
+    <div class="perf-spark"><div class="perf-spark-label">Load</div>{{.LoadChart.SVG}}</div>
+    <div class="perf-spark"><div class="perf-spark-label">Memory</div>{{.MemChart.SVG}}</div>
+    <div class="perf-spark"><div class="perf-spark-label">Disk</div>{{.DiskChart.SVG}}</div>
+  </div>
+  {{end}}
   {{else}}
   <p class="muted">No telemetry yet — poll or wait for worker push.</p>
   {{end}}

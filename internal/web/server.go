@@ -108,10 +108,11 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 		blocker: blocker,
 		runner:  runner.New(fileSvc.Root(), 60*time.Second, cfg.CommandRunnerEnabled),
 		orch: orchestrator.New(st, orchestrator.Paths{
-			CaddyConfig: cfg.CaddyConfigPath,
-			CoreDNSDir:  cfg.CoreDNSConfigDir,
-			MaddyConfig: cfg.MaddyConfigPath,
-			SystemdDir:  cfg.SystemdUnitDir,
+			CaddyConfig:    cfg.CaddyConfigPath,
+			CaddyAccessLog: cfg.CaddyAccessLog,
+			CoreDNSDir:     cfg.CoreDNSConfigDir,
+			MaddyConfig:    cfg.MaddyConfigPath,
+			SystemdDir:     cfg.SystemdUnitDir,
 		}),
 		tmpl: tmpl,
 		mux:  http.NewServeMux(),
@@ -148,6 +149,7 @@ func (s *Server) routes() {
 
 	s.mux.HandleFunc("GET /login", s.handleLoginPage)
 	s.mux.HandleFunc("POST /login", s.handleLogin)
+	s.mux.HandleFunc("POST /login/totp", s.handleLoginTOTP)
 	s.mux.HandleFunc("POST /logout", s.requireAuth(s.handleLogout))
 
 	s.mux.HandleFunc("GET /{$}", s.requireAuth(s.handleDashboard))
@@ -201,6 +203,11 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /security/users/create", s.requireAuth(s.handleUserCreate))
 	s.mux.HandleFunc("POST /security/users/delete", s.requireAuth(s.handleUserDelete))
 	s.mux.HandleFunc("POST /security/password", s.requireAuth(s.handlePasswordChange))
+	s.mux.HandleFunc("POST /security/2fa/setup", s.requireAuth(s.handle2FASetup))
+	s.mux.HandleFunc("POST /security/2fa/enable", s.requireAuth(s.handle2FAEnable))
+	s.mux.HandleFunc("POST /security/2fa/disable", s.requireAuth(s.handle2FADisable))
+
+	s.mux.HandleFunc("GET /sftp", s.requireAuth(s.handleSFTPPage))
 
 	s.mux.HandleFunc("GET /terminal", s.requireAuth(s.handleTerminalPage))
 	s.mux.HandleFunc("POST /terminal/run", s.requireAuth(s.handleTerminalRun))
@@ -245,6 +252,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /fleet/command", s.requireAuth(s.handleFleetCommand))
 
 	s.mux.HandleFunc("GET /metrics", s.requireAuth(s.handleMetricsPage))
+	s.mux.HandleFunc("GET /analytics", s.requireAuth(s.handleAnalyticsPage))
 	s.mux.HandleFunc("GET /ssl", s.requireAuth(s.handleSSLPage))
 }
 

@@ -3,6 +3,7 @@ package web
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/schmorrison/goshpanel/internal/security"
@@ -85,4 +86,32 @@ func (s *Server) handlePasswordChange(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "security.password.change", "own password")
 	redirectFlash(w, r, "/security", "Password changed")
+}
+
+func (s *Server) handle2FASetup(w http.ResponseWriter, r *http.Request) {
+	_, uri, err := s.auth.BeginTOTPSetup(currentUser(r).ID)
+	if err != nil {
+		redirectError(w, r, "/security", err)
+		return
+	}
+	s.audit(r, "security.2fa.setup", "started")
+	http.Redirect(w, r, "/security?totp_uri="+url.QueryEscape(uri), http.StatusSeeOther)
+}
+
+func (s *Server) handle2FAEnable(w http.ResponseWriter, r *http.Request) {
+	if err := s.auth.ConfirmTOTPSetup(currentUser(r).ID, r.FormValue("totp_code")); err != nil {
+		redirectError(w, r, "/security", err)
+		return
+	}
+	s.audit(r, "security.2fa.enable", "enabled")
+	redirectFlash(w, r, "/security", "Two-factor authentication enabled")
+}
+
+func (s *Server) handle2FADisable(w http.ResponseWriter, r *http.Request) {
+	if err := s.auth.DisableTOTP(currentUser(r).ID, r.FormValue("totp_code")); err != nil {
+		redirectError(w, r, "/security", err)
+		return
+	}
+	s.audit(r, "security.2fa.disable", "disabled")
+	redirectFlash(w, r, "/security", "Two-factor authentication disabled")
 }

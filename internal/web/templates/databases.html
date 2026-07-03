@@ -53,10 +53,18 @@
     <input type="hidden" name="conn_id" value="{{.ActiveConn.ID}}">
     <textarea name="sql" class="editor editor-sm" rows="4" placeholder="SELECT * FROM ..." spellcheck="false">{{.SQL}}</textarea>
     <div class="toolbar">
-      <button type="submit" class="btn btn-primary">Run query (read-only)</button>
+      <button type="submit" class="btn btn-primary">Run query</button>
+      {{if eq $.User.Role "admin"}}
+      <label style="display:inline-flex;align-items:center;gap:.35rem;margin:0;color:var(--muted)">
+        <input type="checkbox" name="write_mode" value="1" {{if .WriteMode}}checked{{end}}> Allow writes (admin)
+      </label>
+      {{end}}
     </div>
   </form>
   {{if .QueryErr}}<div class="flash flash-err">{{.QueryErr}}</div>{{end}}
+  {{if .ExecResult}}
+  <p class="muted">{{.ExecResult.RowsAffected}} row(s) affected in {{.ExecResult.Elapsed}}</p>
+  {{end}}
   {{if .Result}}
   <p class="muted">{{len .Result.Rows}} row(s) in {{.Result.Elapsed}}</p>
   <div class="scroll-x">
