@@ -45,30 +45,54 @@ func StartBackground(ctx context.Context, cfg config.Config, st *store.Store, lo
 		}()
 	}
 
-	if IsWorker(mode) && cfg.FleetControllerURL != "" && cfg.FleetToken != "" {
-		go func() {
-			tick := time.NewTicker(interval)
-			defer tick.Stop()
-			push := func() {
-				t, err := collector.Snapshot()
-				if err != nil {
-					return
+	if IsWorker(mode) {
+		go runWorker(ctx, cfg, collector, client, interval, log)
+	}
+}
+
+func runWorker(ctx context.Context, cfg config.Config, collector *Collector, client *Client, interval time.Duration, log *slog.Logger) {
+	tick := time.NewTicker(interval)
+	defer tick.Stop()
+
+	push := func(rt WorkerRuntime) {
+		collector.nodeName = rt.NodeName
+		t, err := collector.Snapshot()
+		if err != nil {
+			return
+		}
+		if err := client.PushTelemetry(ctx, rt.ControllerURL, rt.NodeToken, IngestRequest{
+			NodeName: rt.NodeName, Telemetry: t,
+		}); err != nil && log != nil {
+			log.Warn("fleet push", "err", err)
+		}
+	}
+
+	for {
+		rt := ResolveWorkerRuntime(cfg)
+		if WorkerNeedsEnroll(cfg, rt) {
+			creds, err := EnrollWorker(ctx, cfg, client)
+			if err != nil {
+				if log != nil {
+					log.Warn("fleet enroll", "err", err)
 				}
-				if err := client.PushTelemetry(ctx, cfg.FleetControllerURL, cfg.FleetToken, IngestRequest{
-					NodeName: cfg.FleetNodeName, Telemetry: t,
-				}); err != nil && log != nil {
-					log.Warn("fleet push", "err", err)
+			} else {
+				rt.NodeName = creds.NodeName
+				rt.NodeToken = creds.NodeToken
+				rt.ControllerURL = creds.ControllerURL
+				if log != nil {
+					log.Info("fleet enrolled", "node", creds.NodeName, "controller", creds.ControllerURL)
 				}
 			}
-			push()
-			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-tick.C:
-					push()
-				}
-			}
-		}()
+		}
+
+		if rt.ControllerURL != "" && rt.NodeToken != "" {
+			push(rt)
+		}
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-tick.C:
+		}
 	}
 }

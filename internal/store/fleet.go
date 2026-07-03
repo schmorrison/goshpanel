@@ -47,6 +47,27 @@ type MetricSample struct {
 	RecordedAt  time.Time
 }
 
+// UpsertFleetNode creates or updates a fleet node by name.
+func (s *Store) UpsertFleetNode(name, baseURL, token string) (FleetNode, error) {
+	existing, err := s.FleetNodeByName(name)
+	if err == nil {
+		if _, err := s.db.Exec(
+			`UPDATE fleet_nodes SET base_url = ?, token = ?, enabled = 1, last_error = '' WHERE id = ?`,
+			baseURL, token, existing.ID); err != nil {
+			return FleetNode{}, fmt.Errorf("update fleet node: %w", err)
+		}
+		existing.BaseURL = baseURL
+		existing.Token = token
+		existing.Enabled = true
+		existing.LastError = ""
+		return existing, nil
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return FleetNode{}, err
+	}
+	return s.CreateFleetNode(name, baseURL, token)
+}
+
 // CreateFleetNode registers a remote node.
 func (s *Store) CreateFleetNode(name, baseURL, token string) (FleetNode, error) {
 	n := FleetNode{Name: name, BaseURL: baseURL, Token: token, Enabled: true, CreatedAt: now()}

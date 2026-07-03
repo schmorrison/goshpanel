@@ -2,7 +2,18 @@
 {{$csrf := .CSRF}}
 {{with .Data}}
 {{if eq .Mode "standalone"}}
-<div class="card"><p class="muted">Fleet controller is disabled. Set <code>GOSHPANEL_FLEET_MODE=controller</code> on the main instance and <code>worker</code> on satellite nodes.</p></div>
+<div class="card"><p class="muted">Fleet is disabled. Set <code>GOSHPANEL_FLEET_MODE=controller</code> on the main instance and <code>worker</code> on satellite nodes.</p></div>
+{{else if and (eq .Mode "worker") (not $.Data.Nodes)}}
+<div class="card">
+  <h2>Fleet worker</h2>
+  <p class="muted">Mode: <code>{{.Mode}}</code> · node: <code>{{.NodeName}}</code></p>
+  {{if .WorkerEnrolled}}
+  <p>Enrolled with controller <code>{{.WorkerController}}</code>. Telemetry pushes every {{.Interval}}s.</p>
+  <p class="muted">Credentials are stored in <code>data/fleet/agent.json</code>.</p>
+  {{else}}
+  <p class="muted">Not enrolled yet. Set <code>GOSHPANEL_FLEET_ENROLL_TOKEN</code> and <code>GOSHPANEL_FLEET_CONTROLLER_URL</code>, then restart — the worker enrolls automatically on startup.</p>
+  {{end}}
+</div>
 {{else}}
 
 <div class="card">
@@ -14,17 +25,40 @@
   </form>
 </div>
 
-<form class="card" method="post" action="/fleet/nodes/create">
-  <h2>Register worker node</h2>
+<form class="card" method="post" action="/fleet/enroll-token">
+  <h2>Add worker with enroll token</h2>
   <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <p class="muted">Generate a short-lived JWT. Paste the env block on a new worker — it enrolls automatically on startup.</p>
   <div class="form-row">
-    <input type="text" name="name" placeholder="worker-us-east" required>
-    <input type="url" name="base_url" placeholder="http://10.0.0.5:4674" required class="grow">
-    <input type="text" name="token" placeholder="shared fleet token" required>
-    <button type="submit" class="btn">Register</button>
+    <input type="text" name="suggested_name" placeholder="suggested node name (optional)">
+    <input type="number" name="ttl_hours" placeholder="TTL hours" value="168" min="1" max="720" style="max-width:8rem">
+    <button type="submit" class="btn btn-primary" {{if not .EnrollEnabled}}disabled{{end}}>Generate enroll token</button>
   </div>
-  <p class="muted">Worker must set <code>GOSHPANEL_FLEET_TOKEN</code> to the same token. For NAT'd workers, use push mode instead of polling (set <code>GOSHPANEL_FLEET_CONTROLLER_URL</code> on the worker).</p>
+  {{if not .EnrollEnabled}}
+  <p class="muted">Set <code>GOSHPANEL_FLEET_ENROLL_SECRET</code> (or <code>GOSHPANEL_FLEET_TOKEN</code>) to enable token generation.</p>
+  {{end}}
+  {{if .EnrollToken}}
+  <h3>Enroll token</h3>
+  <pre class="code-block">{{.EnrollToken}}</pre>
+  <h3>Worker environment</h3>
+  <pre class="code-block">{{.EnrollEnvBlock}}</pre>
+  <p class="muted">After the worker starts, it appears below automatically. Re-enrolling the same node name updates its URL and token.</p>
+  {{end}}
 </form>
+
+<details class="card">
+  <summary><h2 style="display:inline">Manual registration (advanced)</h2></summary>
+  <form method="post" action="/fleet/nodes/create" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <div class="form-row">
+      <input type="text" name="name" placeholder="worker-us-east" required>
+      <input type="url" name="base_url" placeholder="http://10.0.0.5:4674" required class="grow">
+      <input type="text" name="token" placeholder="shared fleet token" required>
+      <button type="submit" class="btn">Register</button>
+    </div>
+    <p class="muted">Legacy flow: pre-create the node and set <code>GOSHPANEL_FLEET_TOKEN</code> on the worker to match.</p>
+  </form>
+</details>
 
 {{range .Nodes}}
 <div class="card">
@@ -88,7 +122,7 @@
   {{end}}
 </div>
 {{else}}
-<div class="card"><p class="muted">No worker nodes registered yet.</p></div>
+<div class="card"><p class="muted">No worker nodes registered yet. Generate an enroll token above and start a worker.</p></div>
 {{end}}
 {{end}}
 {{end}}

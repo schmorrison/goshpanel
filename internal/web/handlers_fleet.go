@@ -2,6 +2,7 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,21 +18,49 @@ type fleetNodeRow struct {
 }
 
 type fleetData struct {
-	Mode      string
-	NodeName  string
-	Nodes     []fleetNodeRow
-	Selected  int64
-	PushURL   string
-	Interval  int
+	Mode             string
+	NodeName         string
+	Nodes            []fleetNodeRow
+	Selected         int64
+	PushURL          string
+	Interval         int
+	EnrollToken      string
+	EnrollEnvBlock   string
+	EnrollEnabled    bool
+	WorkerEnrolled   bool
+	WorkerController string
 }
 
 func (s *Server) handleFleetPage(w http.ResponseWriter, r *http.Request) {
+	mode := fleet.ParseMode(s.cfg.FleetMode)
+	data := fleetData{
+		Mode:          string(mode),
+		NodeName:      s.cfg.FleetNodeName,
+		Interval:      s.cfg.FleetIntervalSeconds,
+		EnrollEnabled: fleet.EnrollSecret(s.cfg) != "",
+		EnrollToken:   r.URL.Query().Get("enroll_token"),
+	}
+
+	if fleet.IsWorker(mode) {
+		rt := fleet.ResolveWorkerRuntime(s.cfg)
+		data.WorkerEnrolled = rt.Enrolled || (rt.NodeToken != "" && rt.ControllerURL != "")
+		data.WorkerController = rt.ControllerURL
+		data.PushURL = rt.ControllerURL
+	}
+
+	if data.EnrollToken != "" {
+		controllerURL := data.WorkerController
+		if controllerURL == "" {
+			controllerURL = requestBaseURL(r)
+		}
+		data.EnrollEnvBlock = workerEnvBlock(controllerURL, data.EnrollToken, s.cfg.FleetNodeName)
+	}
+
 	if s.fleet == nil {
-		s.render(w, r, "fleet.html", "Fleet", "fleet", fleetData{
-			Mode: string(fleet.ParseMode(s.cfg.FleetMode)),
-		})
+		s.render(w, r, "fleet.html", "Fleet", "fleet", data)
 		return
 	}
+
 	nodes, err := s.store.FleetNodes()
 	if err != nil {
 		redirectError(w, r, "/", err)
@@ -52,14 +81,36 @@ func (s *Server) handleFleetPage(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, row)
 	}
 	sel, _ := strconv.ParseInt(r.URL.Query().Get("node"), 10, 64)
-	s.render(w, r, "fleet.html", "Fleet", "fleet", fleetData{
-		Mode:     string(fleet.ParseMode(s.cfg.FleetMode)),
-		NodeName: s.cfg.FleetNodeName,
-		Nodes:    rows,
-		Selected: sel,
-		PushURL:  s.cfg.FleetControllerURL,
-		Interval: s.cfg.FleetIntervalSeconds,
-	})
+	data.Nodes = rows
+	data.Selected = sel
+	data.PushURL = s.cfg.FleetControllerURL
+	if data.EnrollToken != "" && data.EnrollEnvBlock == "" {
+		data.EnrollEnvBlock = workerEnvBlock(requestBaseURL(r), data.EnrollToken, "")
+	}
+	s.render(w, r, "fleet.html", "Fleet", "fleet", data)
+}
+
+func (s *Server) handleFleetEnrollTokenGenerate(w http.ResponseWriter, r *http.Request) {
+	if s.fleet == nil {
+		redirectError(w, r, "/fleet", moduleDisabled("fleet controller"))
+		return
+	}
+	secret := fleet.EnrollSecret(s.cfg)
+	if secret == "" {
+		redirectError(w, r, "/fleet", fmt.Errorf("set GOSHPANEL_FLEET_ENROLL_SECRET or GOSHPANEL_FLEET_TOKEN to generate enroll tokens"))
+		return
+	}
+	ttlHours, _ := strconv.Atoi(r.FormValue("ttl_hours"))
+	if ttlHours <= 0 {
+		ttlHours = int(fleet.DefaultEnrollTTL / time.Hour)
+	}
+	token, err := fleet.SignEnrollToken(secret, time.Duration(ttlHours)*time.Hour, r.FormValue("suggested_name"))
+	if err != nil {
+		redirectError(w, r, "/fleet", err)
+		return
+	}
+	s.audit(r, "fleet.enroll_token", strconv.Itoa(ttlHours)+"h")
+	http.Redirect(w, r, "/fleet?enroll_token="+token, http.StatusSeeOther)
 }
 
 func (s *Server) handleFleetNodeCreate(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +192,16 @@ func (s *Server) handleFleetCommand(w http.ResponseWriter, r *http.Request) {
 	}
 	s.audit(r, "fleet.command", action)
 	redirectFlash(w, r, "/fleet?node="+strconv.FormatInt(id, 10), res.Message)
+}
+
+func workerEnvBlock(controllerURL, enrollToken, nodeName string) string {
+	block := fmt.Sprintf("GOSHPANEL_FLEET_MODE=worker\nGOSHPANEL_FLEET_CONTROLLER_URL=%s\nGOSHPANEL_FLEET_ENROLL_TOKEN=%s",
+		controllerURL, enrollToken)
+	if nodeName != "" {
+		block += "\nGOSHPANEL_FLEET_NODE_NAME=" + nodeName
+	}
+	block += "\nGOSHPANEL_FLEET_PUBLIC_URL=http://your-worker-host:4674"
+	return block
 }
 
 // nodeOnline reports whether a node was seen within 2x the fleet interval.

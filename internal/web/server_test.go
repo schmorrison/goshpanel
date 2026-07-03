@@ -9,8 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/fleet"
 	"github.com/schmorrison/goshpanel/internal/store"
 )
 
@@ -36,6 +38,7 @@ func newTestServer(t *testing.T) http.Handler {
 		DockerEnabled:        true,
 		FleetMode:            "controller",
 		FleetToken:           "test-fleet-token",
+		FleetEnrollSecret:    "test-enroll-secret",
 		FleetNodeName:        "test-node",
 		FleetIntervalSeconds: 60,
 		MetricsEnabled:       true,
@@ -329,6 +332,25 @@ func TestFleetTelemetryAPIUnauthorized(t *testing.T) {
 	h.ServeHTTP(rec, req)
 	if rec.Code != http.StatusUnauthorized {
 		t.Errorf("code = %d, want 401", rec.Code)
+	}
+}
+
+func TestFleetEnrollAPI(t *testing.T) {
+	h := newTestServer(t)
+	token, err := fleet.SignEnrollToken("test-enroll-secret", time.Hour, "enrolled-worker")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := `{"enroll_token":"` + token + `","node_name":"enrolled-worker","base_url":"http://10.0.0.9:4674"}`
+	req := httptest.NewRequest("POST", "/api/v1/fleet/enroll", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("enroll API: %d %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "node_token") {
+		t.Errorf("body = %s", rec.Body.String())
 	}
 }
 

@@ -231,9 +231,11 @@ func (s *Server) routes() {
 	// Fleet agent API (Bearer GOSHPANEL_FLEET_TOKEN).
 	s.mux.HandleFunc("GET /api/v1/fleet/telemetry", s.fleetAuth(s.handleFleetTelemetryAPI))
 	s.mux.HandleFunc("POST /api/v1/fleet/control", s.fleetAuth(s.handleFleetControlAPI))
+	s.mux.HandleFunc("POST /api/v1/fleet/enroll", s.handleFleetEnrollAPI)
 	s.mux.HandleFunc("POST /api/v1/fleet/ingest", s.handleFleetIngestAPI)
 
 	s.mux.HandleFunc("GET /fleet", s.requireAuth(s.handleFleetPage))
+	s.mux.HandleFunc("POST /fleet/enroll-token", s.requireAuth(s.handleFleetEnrollTokenGenerate))
 	s.mux.HandleFunc("POST /fleet/nodes/create", s.requireAuth(s.handleFleetNodeCreate))
 	s.mux.HandleFunc("POST /fleet/nodes/delete", s.requireAuth(s.handleFleetNodeDelete))
 	s.mux.HandleFunc("POST /fleet/poll", s.requireAuth(s.handleFleetPoll))

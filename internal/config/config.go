@@ -50,6 +50,9 @@ type Config struct {
 	FleetToken           string // agent API bearer token for this instance
 	FleetNodeName        string // identity reported in telemetry
 	FleetControllerURL   string // worker push target (http://controller:4674)
+	FleetEnrollSecret    string // controller HMAC secret for enrollment JWTs
+	FleetEnrollToken     string // worker enrollment JWT (one-time join)
+	FleetPublicURL       string // worker URL reported during enrollment
 	FleetIntervalSeconds int
 
 	// MetricsEnabled records local metric samples for /metrics history.
@@ -116,6 +119,9 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 		cfg.FleetNodeName, _ = os.Hostname()
 	}
 	cfg.FleetControllerURL = get("FLEET_CONTROLLER_URL", "")
+	cfg.FleetEnrollSecret = get("FLEET_ENROLL_SECRET", "")
+	cfg.FleetEnrollToken = get("FLEET_ENROLL_TOKEN", "")
+	cfg.FleetPublicURL = get("FLEET_PUBLIC_URL", "")
 	intervalStr := get("FLEET_INTERVAL_SECONDS", "60")
 	nInterval, aerr := strconv.Atoi(intervalStr)
 	if aerr != nil || nInterval <= 0 {

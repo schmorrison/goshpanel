@@ -69,6 +69,34 @@ func (c *Client) SendControl(ctx context.Context, baseURL, token, action string)
 	return out, nil
 }
 
+// Enroll POSTs to /api/v1/fleet/enroll and returns per-node credentials.
+func (c *Client) Enroll(ctx context.Context, controllerURL, enrollToken, nodeName, baseURL string) (EnrollResponse, error) {
+	body, _ := json.Marshal(EnrollRequest{
+		EnrollToken: enrollToken,
+		NodeName:    nodeName,
+		BaseURL:     baseURL,
+	})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinURL(controllerURL, "/api/v1/fleet/enroll"), bytes.NewReader(body))
+	if err != nil {
+		return EnrollResponse{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return EnrollResponse{}, fmt.Errorf("enroll: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return EnrollResponse{}, fmt.Errorf("enroll HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(b)))
+	}
+	var out EnrollResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return EnrollResponse{}, fmt.Errorf("decode enroll response: %w", err)
+	}
+	return out, nil
+}
+
 // PushTelemetry POSTs telemetry to a controller ingest endpoint.
 func (c *Client) PushTelemetry(ctx context.Context, controllerURL, token string, ingest IngestRequest) error {
 	body, _ := json.Marshal(ingest)

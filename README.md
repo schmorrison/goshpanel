@@ -64,6 +64,47 @@ Everything is an environment variable:
 | `GOSHPANEL_SYSTEMD_UNIT_DIR` | `data/generated/systemd` | systemd unit file directory |
 | `GOSHPANEL_DOCKER` | `true` | Enable Docker module (requires `docker` CLI) |
 | `GOSHPANEL_FUNCTIONS` | `true` | Enable micro functions module |
+| `GOSHPANEL_FLEET_MODE` | `standalone` | `standalone`, `controller`, `worker`, or `both` |
+| `GOSHPANEL_FLEET_TOKEN` | — | Bearer token for agent API (or per-node token after enroll) |
+| `GOSHPANEL_FLEET_ENROLL_SECRET` | — | Controller HMAC secret for enrollment JWTs (falls back to `FLEET_TOKEN`) |
+| `GOSHPANEL_FLEET_ENROLL_TOKEN` | — | Worker enrollment JWT from controller UI |
+| `GOSHPANEL_FLEET_PUBLIC_URL` | — | Worker URL reported during enrollment |
+| `GOSHPANEL_FLEET_NODE_NAME` | hostname | This instance's fleet identity |
+| `GOSHPANEL_FLEET_CONTROLLER_URL` | — | Worker push/enroll target (`http://main:4674`) |
+| `GOSHPANEL_FLEET_INTERVAL_SECONDS` | `60` | Poll/push/metrics interval |
+| `GOSHPANEL_METRICS` | `true` | Record local metrics samples |
+| `GOSHPANEL_SSL_CERT_DIR` | `data/certs` | Directory scanned for PEM certificates |
+
+### Fleet setup
+
+**Controller (main instance):**
+```bash
+GOSHPANEL_FLEET_MODE=controller \
+GOSHPANEL_FLEET_ENROLL_SECRET=your-enroll-secret \
+./goshpanel
+```
+Open `/fleet`, click **Generate enroll token**, and copy the worker env block onto a new instance.
+
+**Worker (auto-enroll — recommended):**
+```bash
+GOSHPANEL_FLEET_MODE=worker \
+GOSHPANEL_FLEET_CONTROLLER_URL=http://main-host:4674 \
+GOSHPANEL_FLEET_ENROLL_TOKEN=<jwt-from-controller-ui> \
+GOSHPANEL_FLEET_NODE_NAME=worker-1 \
+GOSHPANEL_FLEET_PUBLIC_URL=http://worker-host:4674 \
+./goshpanel
+```
+On startup the worker calls `POST /api/v1/fleet/enroll`, receives a per-node token, and saves credentials to `data/fleet/agent.json`. No manual registration required.
+
+**Worker (manual — legacy):**
+```bash
+GOSHPANEL_FLEET_MODE=worker \
+GOSHPANEL_FLEET_TOKEN=shared-secret \
+GOSHPANEL_FLEET_CONTROLLER_URL=http://main-host:4674 \
+GOSHPANEL_FLEET_NODE_NAME=worker-1 \
+./goshpanel
+```
+Register the worker at `/fleet` with matching name, URL, and token.
 
 ## Development
 
@@ -94,6 +135,8 @@ internal/system/     /proc metrics
 internal/web/        HTTP server, handlers, templates, CSS
 internal/orchestrator/ Live apply for Caddy, CoreDNS, maddy, systemd
 internal/docker/       Docker CLI wrapper (containers, compose)
-internal/fn/           HTTP-triggered micro functions
+internal/fleet/         Multi-instance telemetry and remote control
+internal/telemetry/     Local metrics sampling
+internal/ssl/           PEM certificate scanner
 docs/FEATURES.md     cPanel feature-parity matrix
 ```
