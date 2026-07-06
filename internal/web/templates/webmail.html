@@ -1,0 +1,31 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <h2>Webmail reverse proxy</h2>
+  <p class="muted">Proxy a webmail app (SnappyMail, Roundcube, etc.) through Caddy with automatic HTTPS. The upstream runs separately — GoshPanel only configures the reverse proxy.</p>
+  <form method="post" action="/webmail/save">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Webmail hostname
+      <input type="text" name="host" value="{{.Settings.Host}}" placeholder="webmail.example.com">
+    </label>
+    <label>Upstream
+      <input type="text" name="upstream" value="{{.Settings.Upstream}}" placeholder="localhost:8080">
+    </label>
+    <label style="display:flex;align-items:center;gap:.5rem">
+      <input type="checkbox" name="enabled" value="1" {{if .Settings.Enabled}}checked{{end}}> Enable webmail proxy
+    </label>
+    <button type="submit" class="btn btn-primary">Save &amp; apply Caddy</button>
+  </form>
+</div>
+<div class="card">
+  <h2>Setup notes</h2>
+  <ol class="muted">
+    <li>Install SnappyMail or Roundcube on the upstream port (e.g. Docker on <code>8080</code>).</li>
+    <li>Set the hostname above and enable the proxy.</li>
+    <li>Point DNS for the webmail hostname to this server.</li>
+    <li>Apply orchestrator if Caddy is not auto-applied.</li>
+  </ol>
+</div>
+{{end}}
+{{template "footer" .}}

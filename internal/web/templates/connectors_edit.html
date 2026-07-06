@@ -1,0 +1,69 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<p class="muted"><a href="/connectors">← Connectors</a></p>
+
+<form class="card" method="post" action="/connectors/{{.Connector.ID}}/save">
+  <h2>Edit {{.Connector.Name}}</h2>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <label>Name <input type="text" name="name" value="{{.Connector.Name}}" required></label>
+  <label>Kind <input type="text" value="{{.Connector.Kind}}" disabled></label>
+  {{if eq .Connector.Kind "caddy"}}
+  <label>Mode
+    <select name="mode">
+      <option value="docker" {{if eq .Connector.Mode "docker"}}selected{{end}}>docker</option>
+      <option value="local" {{if eq .Connector.Mode "local"}}selected{{end}}>local</option>
+    </select>
+  </label>
+  <label>Container name <input type="text" name="container" value="{{.Caddy.Container}}"></label>
+  <label>Config path in container <input type="text" name="config_path_container" value="{{.Caddy.ConfigPathContainer}}"></label>
+  <label>Host volume path <input type="text" name="config_path_host" value="{{.Caddy.ConfigPathHost}}"></label>
+  <label>Access log path <input type="text" name="access_log_path" value="{{.Caddy.AccessLogPath}}"></label>
+  <label>Docker host <input type="text" name="docker_host" value="{{.Caddy.DockerHost}}"></label>
+  <label>Admin API URL <input type="text" name="admin_url" value="{{.Caddy.AdminURL}}"></label>
+  <label>Admin API token <input type="password" name="admin_token" placeholder="{{if .HasSecret}}leave blank to keep{{else}}optional{{end}}"></label>
+  {{else if eq .Connector.Kind "coredns"}}
+  <label>Mode
+    <select name="mode">
+      <option value="docker" {{if eq .Connector.Mode "docker"}}selected{{end}}>docker</option>
+      <option value="local" {{if eq .Connector.Mode "local"}}selected{{end}}>local</option>
+    </select>
+  </label>
+  <label>Container <input type="text" name="container" value="{{.CoreDNS.Container}}"></label>
+  <label>Corefile path in container <input type="text" name="corefile_path_container" value="{{.CoreDNS.CorefilePathContainer}}"></label>
+  <label>Zones dir in container <input type="text" name="zones_dir_container" value="{{.CoreDNS.ZonesDirContainer}}"></label>
+  <label>Host Corefile path <input type="text" name="corefile_path_host" value="{{.CoreDNS.CorefilePathHost}}"></label>
+  <label>Host zones dir <input type="text" name="zones_dir_host" value="{{.CoreDNS.ZonesDirHost}}"></label>
+  <label>Docker host <input type="text" name="docker_host" value="{{.CoreDNS.DockerHost}}"></label>
+  {{else if eq .Connector.Kind "maddy"}}
+  <label>Mode
+    <select name="mode">
+      <option value="docker" {{if eq .Connector.Mode "docker"}}selected{{end}}>docker</option>
+      <option value="local" {{if eq .Connector.Mode "local"}}selected{{end}}>local</option>
+    </select>
+  </label>
+  <label>Container <input type="text" name="container" value="{{.Maddy.Container}}"></label>
+  <label>Config path in container <input type="text" name="config_path_container" value="{{.Maddy.ConfigPathContainer}}"></label>
+  <label>Host volume path <input type="text" name="config_path_host" value="{{.Maddy.ConfigPathHost}}"></label>
+  <label>Docker host <input type="text" name="docker_host" value="{{.Maddy.DockerHost}}"></label>
+  {{else if eq .Connector.Kind "docker"}}
+  <label>DOCKER_HOST <input type="text" name="docker_host" value="{{.Docker.DockerHost}}" required></label>
+  {{else if or (eq .Connector.Kind "postgres") (eq .Connector.Kind "mysql")}}
+  <label>Host <input type="text" name="host" value="{{.Database.Host}}" required></label>
+  <label>Port <input type="number" name="port" value="{{.Database.Port}}"></label>
+  <label>Admin user <input type="text" name="admin_user" value="{{.Database.AdminUser}}" required></label>
+  <label>Admin password <input type="password" name="admin_password" placeholder="{{if .HasSecret}}leave blank to keep{{else}}required{{end}}"></label>
+  <label>Maintenance DB <input type="text" name="default_database" value="{{.Database.DefaultDatabase}}"></label>
+  {{if eq .Connector.Kind "postgres"}}
+  <label>SSL mode <input type="text" name="ssl_mode" value="{{.Database.SSLMode}}"></label>
+  {{end}}
+  {{end}}
+  <label><input type="checkbox" name="enabled" value="1" {{if .Connector.Enabled}}checked{{end}}> Enabled</label>
+  <label><input type="checkbox" name="is_default" value="1" {{if .Connector.IsDefault}}checked{{end}}> Default {{.Connector.Kind}} connector</label>
+  <div class="toolbar">
+    <button type="submit" class="btn btn-primary">Save changes</button>
+    <a class="btn" href="/connectors">Cancel</a>
+  </div>
+</form>
+{{end}}
+{{template "footer" .}}

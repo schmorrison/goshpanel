@@ -1,0 +1,235 @@
+package store
+
+import (
+	"fmt"
+	"strings"
+)
+
+func (s *Store) migrate() error {
+	stmts := []string{
+		`ALTER TABLE users ADD COLUMN totp_secret TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0`,
+		`CREATE TABLE IF NOT EXISTS login_pending (
+			token TEXT PRIMARY KEY,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			expires_at TIMESTAMP NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS access_log_events (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			recorded_at TIMESTAMP NOT NULL,
+			host TEXT NOT NULL DEFAULT '',
+			method TEXT NOT NULL DEFAULT '',
+			path TEXT NOT NULL DEFAULT '',
+			status INTEGER NOT NULL DEFAULT 0,
+			bytes INTEGER NOT NULL DEFAULT 0,
+			remote_ip TEXT NOT NULL DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS analytics_state (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL DEFAULT ''
+		)`,
+		`CREATE TABLE IF NOT EXISTS panel_settings (
+			key TEXT PRIMARY KEY,
+			value TEXT NOT NULL DEFAULT ''
+		)`,
+		`ALTER TABLE users ADD COLUMN files_subdir TEXT NOT NULL DEFAULT ''`,
+		`CREATE TABLE IF NOT EXISTS api_tokens (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			token_hash TEXT NOT NULL UNIQUE,
+			role TEXT NOT NULL DEFAULT 'admin',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			last_used TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS redirect_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			from_host TEXT NOT NULL,
+			to_url TEXT NOT NULL,
+			status INTEGER NOT NULL DEFAULT 301,
+			enabled INTEGER NOT NULL DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS domain_aliases (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			alias_host TEXT NOT NULL UNIQUE,
+			target_host TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS dkim_keys (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			domain_id INTEGER NOT NULL UNIQUE REFERENCES domains(id) ON DELETE CASCADE,
+			selector TEXT NOT NULL,
+			private_pem TEXT NOT NULL,
+			public_dns TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS http_collections (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE
+		)`,
+		`CREATE TABLE IF NOT EXISTS http_requests (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			collection_id INTEGER NOT NULL REFERENCES http_collections(id) ON DELETE CASCADE,
+			name TEXT NOT NULL,
+			method TEXT NOT NULL DEFAULT 'GET',
+			url TEXT NOT NULL,
+			headers TEXT NOT NULL DEFAULT '',
+			body TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS firewall_rules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			port INTEGER NOT NULL,
+			protocol TEXT NOT NULL DEFAULT 'tcp',
+			action TEXT NOT NULL DEFAULT 'accept',
+			direction TEXT NOT NULL DEFAULT 'in',
+			comment TEXT NOT NULL DEFAULT '',
+			enabled INTEGER NOT NULL DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS ssh_keys (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+			public_key TEXT NOT NULL,
+			comment TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS waf_sites (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			host TEXT NOT NULL UNIQUE,
+			policy_path TEXT NOT NULL DEFAULT '',
+			enabled INTEGER NOT NULL DEFAULT 1
+		)`,
+		`CREATE TABLE IF NOT EXISTS ddns_configs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			hostname TEXT NOT NULL UNIQUE,
+			provider TEXT NOT NULL DEFAULT 'generic',
+			update_url TEXT NOT NULL DEFAULT '',
+			token TEXT NOT NULL DEFAULT '',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			last_update TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS health_checks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			url TEXT NOT NULL,
+			method TEXT NOT NULL DEFAULT 'GET',
+			expect_status INTEGER NOT NULL DEFAULT 200,
+			timeout_sec INTEGER NOT NULL DEFAULT 10,
+			enabled INTEGER NOT NULL DEFAULT 1,
+			last_status TEXT NOT NULL DEFAULT '',
+			last_message TEXT NOT NULL DEFAULT '',
+			last_checked TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS backup_schedules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			interval_hours INTEGER NOT NULL DEFAULT 24,
+			enabled INTEGER NOT NULL DEFAULT 1,
+			last_run_at TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS env_secrets (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			encrypted_value TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS function_schedules (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			function_id INTEGER NOT NULL REFERENCES micro_functions(id) ON DELETE CASCADE,
+			interval_minutes INTEGER NOT NULL DEFAULT 60,
+			enabled INTEGER NOT NULL DEFAULT 1,
+			last_run_at TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS git_repos (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			domain_id INTEGER NOT NULL REFERENCES domains(id) ON DELETE CASCADE,
+			path TEXT NOT NULL,
+			branch TEXT NOT NULL DEFAULT 'main',
+			webhook_secret TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS alerts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			kind TEXT NOT NULL,
+			message TEXT NOT NULL,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			acked INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS fleet_log_chunks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			node_id INTEGER NOT NULL REFERENCES fleet_nodes(id) ON DELETE CASCADE,
+			source TEXT NOT NULL DEFAULT '',
+			content TEXT NOT NULL,
+			recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS db_grants (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			conn_id INTEGER NOT NULL REFERENCES db_connections(id) ON DELETE CASCADE,
+			username TEXT NOT NULL,
+			database_name TEXT NOT NULL,
+			privileges TEXT NOT NULL DEFAULT 'ALL',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS fleet_config_hashes (
+			node_id INTEGER NOT NULL REFERENCES fleet_nodes(id) ON DELETE CASCADE,
+			component TEXT NOT NULL,
+			hash TEXT NOT NULL,
+			updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (node_id, component)
+		)`,
+		`CREATE TABLE IF NOT EXISTS service_connectors (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			kind TEXT NOT NULL,
+			mode TEXT NOT NULL DEFAULT 'local',
+			config_json TEXT NOT NULL DEFAULT '{}',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			is_default INTEGER NOT NULL DEFAULT 0,
+			last_ok_at TIMESTAMP,
+			last_error TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS short_links (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			code TEXT NOT NULL,
+			target_url TEXT NOT NULL,
+			host TEXT NOT NULL DEFAULT '',
+			clicks INTEGER NOT NULL DEFAULT 0,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(host, code)
+		)`,
+		`CREATE TABLE IF NOT EXISTS webhook_subscriptions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			url TEXT NOT NULL,
+			secret TEXT NOT NULL DEFAULT '',
+			events TEXT NOT NULL DEFAULT '*',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			last_status INTEGER NOT NULL DEFAULT 0,
+			last_error TEXT NOT NULL DEFAULT '',
+			last_at TIMESTAMP,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS inbound_webhooks (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			token TEXT NOT NULL UNIQUE,
+			action TEXT NOT NULL DEFAULT 'log',
+			config_json TEXT NOT NULL DEFAULT '{}',
+			enabled INTEGER NOT NULL DEFAULT 1,
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS webhook_deliveries (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			subscription_id INTEGER NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+			event TEXT NOT NULL,
+			status INTEGER NOT NULL DEFAULT 0,
+			error TEXT NOT NULL DEFAULT '',
+			created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+	}
+	for _, stmt := range stmts {
+		if _, err := s.db.Exec(stmt); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+			return fmt.Errorf("migrate %q: %w", stmt, err)
+		}
+	}
+	return nil
+}
