@@ -1,0 +1,21 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/health-checks/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <div class="form-row">
+      <input name="name" placeholder="name" required>
+      <input name="url" placeholder="https://example.com/health" required class="grow">
+      <input name="expect_status" type="number" value="200" class="input-sm">
+      <button class="btn btn-primary">Add check</button>
+    </div>
+  </form>
+  <table class="list"><thead><tr><th>Name</th><th>URL</th><th>Status</th><th>Last</th><th></th></tr></thead><tbody>
+  {{range .Checks}}<tr><td>{{.Name}}</td><td class="wrap">{{.URL}}</td><td>{{if eq .LastStatus "up"}}<span class="badge-ok">up</span>{{else}}<span class="badge-warn">{{.LastStatus}}</span>{{end}}</td><td>{{timefmtPtr .LastChecked}}</td>
+  <td><form method="post" action="/health-checks/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{{end}}
+  </tbody></table>
+</div>
+{{if .Alerts}}<div class="card"><h2>Recent alerts</h2><ul>{{range .Alerts}}<li><code>{{.Kind}}</code> {{.Message}} <span class="muted">{{timefmt .CreatedAt}}</span></li>{{end}}</ul></div>{{end}}
+{{end}}
+{{template "footer" .}}

@@ -1,0 +1,28 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="grid grid-2">
+<div class="card">
+  <h2>Redirects</h2>
+  <form method="post" action="/redirects/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>From host <input name="from_host" placeholder="old.example.com" required></label>
+    <label>To URL <input name="to_url" placeholder="https://new.example.com" required></label>
+    <label>Status <input name="status" type="number" value="301"></label>
+    <button class="btn btn-primary">Add redirect</button>
+  </form>
+  <table class="list"><tbody>{{range .Redirects}}<tr><td>{{.FromHost}} → {{.ToURL}}</td><td><form method="post" action="/redirects/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{{end}}</tbody></table>
+</div>
+<div class="card">
+  <h2>Domain aliases</h2>
+  <form method="post" action="/aliases/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Alias <input name="alias_host" required></label>
+    <label>Target domain <input name="target_host" required></label>
+    <button class="btn btn-primary">Add alias</button>
+  </form>
+  <table class="list"><tbody>{{range .Aliases}}<tr><td>{{.AliasHost}} → {{.TargetHost}}</td><td><form method="post" action="/aliases/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{{end}}</tbody></table>
+</div>
+</div>
+{{end}}
+{{template "footer" .}}

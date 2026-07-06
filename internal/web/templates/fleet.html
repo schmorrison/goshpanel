@@ -1,0 +1,145 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{if eq .Mode "standalone"}}
+<div class="card"><p class="muted">Fleet is disabled. Set <code>GOSHPANEL_FLEET_MODE=controller</code> on the main instance and <code>worker</code> on satellite nodes.</p></div>
+{{else if and (eq .Mode "worker") (not $.Data.Nodes)}}
+<div class="card">
+  <h2>Fleet worker</h2>
+  <p class="muted">Mode: <code>{{.Mode}}</code> · node: <code>{{.NodeName}}</code></p>
+  {{if .WorkerEnrolled}}
+  <p>Enrolled with controller <code>{{.WorkerController}}</code>. Telemetry pushes every {{.Interval}}s.</p>
+  <p class="muted">Credentials are stored in <code>data/fleet/agent.json</code>.</p>
+  {{else}}
+  <p class="muted">Not enrolled yet. Set <code>GOSHPANEL_FLEET_ENROLL_TOKEN</code> and <code>GOSHPANEL_FLEET_CONTROLLER_URL</code>, then restart — the worker enrolls automatically on startup.</p>
+  {{end}}
+</div>
+{{else}}
+
+<div class="card">
+  <h2>Fleet controller</h2>
+  <p class="muted">Mode: <code>{{.Mode}}</code> · this node: <code>{{.NodeName}}</code> · poll/push every {{.Interval}}s</p>
+  <form method="post" action="/fleet/poll" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <button type="submit" class="btn btn-primary">Poll all nodes now</button>
+  </form>
+</div>
+
+<form class="card" method="post" action="/fleet/enroll-token">
+  <h2>Add worker with enroll token</h2>
+  <input type="hidden" name="csrf_token" value="{{$csrf}}">
+  <p class="muted">Generate a short-lived JWT. Paste the env block on a new worker — it enrolls automatically on startup.</p>
+  <div class="form-row">
+    <input type="text" name="suggested_name" placeholder="suggested node name (optional)">
+    <input type="number" name="ttl_hours" placeholder="TTL hours" value="168" min="1" max="720" style="max-width:8rem">
+    <button type="submit" class="btn btn-primary" {{if not .EnrollEnabled}}disabled{{end}}>Generate enroll token</button>
+  </div>
+  {{if not .EnrollEnabled}}
+  <p class="muted">Set <code>GOSHPANEL_FLEET_ENROLL_SECRET</code> (or <code>GOSHPANEL_FLEET_TOKEN</code>) to enable token generation.</p>
+  {{end}}
+  {{if .EnrollToken}}
+  <h3>Enroll token</h3>
+  <pre class="code-block">{{.EnrollToken}}</pre>
+  <h3>Worker environment</h3>
+  <pre class="code-block">{{.EnrollEnvBlock}}</pre>
+  <p class="muted">After the worker starts, it appears below automatically. Re-enrolling the same node name updates its URL and token.</p>
+  {{end}}
+</form>
+
+<details class="card">
+  <summary><h2 style="display:inline">Manual registration (advanced)</h2></summary>
+  <form method="post" action="/fleet/nodes/create" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <div class="form-row">
+      <input type="text" name="name" placeholder="worker-us-east" required>
+      <input type="url" name="base_url" placeholder="http://10.0.0.5:4674" required class="grow">
+      <input type="text" name="token" placeholder="shared fleet token" required>
+      <button type="submit" class="btn">Register</button>
+    </div>
+    <p class="muted">Legacy flow: pre-create the node and set <code>GOSHPANEL_FLEET_TOKEN</code> on the worker to match.</p>
+  </form>
+</details>
+
+{{range .Nodes}}
+<div class="card">
+  <div class="card-head">
+    <h2>{{.Node.Name}} {{if nodeOnline .Node.LastSeenAt $.Interval}}<span class="badge-ok">online</span>{{else}}<span class="badge-warn">offline</span>{{end}}</h2>
+    <div class="actions">
+      <form method="post" action="/fleet/poll">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="id" value="{{.Node.ID}}">
+        <button type="submit" class="btn btn-sm">Poll</button>
+      </form>
+      <form method="post" action="/fleet/nodes/delete">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="id" value="{{.Node.ID}}">
+        <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+      </form>
+    </div>
+  </div>
+  <p class="muted"><code>{{.Node.BaseURL}}</code> · last seen {{timefmtPtr .Node.LastSeenAt}}{{if .Node.LastError}} · <span class="flash flash-err" style="display:inline;padding:.2rem .5rem">{{.Node.LastError}}</span>{{end}}</p>
+
+  {{if .Telemetry}}
+  <div class="grid grid-4">
+    <div class="stat"><div class="stat-label">Load</div><div class="stat-value">{{printf "%.2f" .Telemetry.Stats.Load1}}</div></div>
+    <div class="stat"><div class="stat-label">Memory</div><div class="stat-value">{{printf "%.0f%%" .Telemetry.Stats.MemUsedPct}}</div></div>
+    <div class="stat"><div class="stat-label">Disk</div><div class="stat-value">{{printf "%.0f%%" .Telemetry.Stats.DiskUsedPct}}</div></div>
+    <div class="stat"><div class="stat-label">Version</div><div class="stat-value" style="font-size:1rem">{{.Telemetry.Version}}</div></div>
+  </div>
+  <table class="kv">
+    <tr><th>Domains</th><td>{{.Telemetry.Counts.Domains}}</td><th>Mailboxes</th><td>{{.Telemetry.Counts.Mailboxes}}</td></tr>
+    <tr><th>Cron</th><td>{{.Telemetry.Counts.CronJobs}}</td><th>Functions</th><td>{{.Telemetry.Counts.Functions}}</td></tr>
+  </table>
+  {{if .HasCharts}}
+  <h3>Performance history</h3>
+  <div class="grid grid-3 perf-spark-grid">
+    <div class="perf-spark"><div class="perf-spark-label">Load</div>{{.LoadChart.SVG}}</div>
+    <div class="perf-spark"><div class="perf-spark-label">Memory</div>{{.MemChart.SVG}}</div>
+    <div class="perf-spark"><div class="perf-spark-label">Disk</div>{{.DiskChart.SVG}}</div>
+  </div>
+  {{end}}
+  {{else}}
+  <p class="muted">No telemetry yet — poll or wait for worker push.</p>
+  {{end}}
+
+  <h3>Remote control</h3>
+  <form class="form-row" method="post" action="/fleet/command">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="node_id" value="{{.Node.ID}}">
+    <select name="action">
+      <option value="ping">ping</option>
+      <option value="backup_create">create backup</option>
+      <option value="docker_ping">docker ping</option>
+      <option value="docker_stack_up">docker stack up</option>
+      <option value="docker_stack_down">docker stack down</option>
+      <option value="apply_all">apply all (orchestrator)</option>
+      <option value="apply_caddy">apply caddy</option>
+      <option value="apply_coredns">apply coredns</option>
+      <option value="apply_maddy">apply maddy</option>
+      <option value="apply_systemd">apply systemd</option>
+    </select>
+    <select name="stack">
+      <option value="">stack (for docker actions)</option>
+      {{range $.Stacks}}<option value="{{.Name}}">{{.Name}}</option>{{end}}
+    </select>
+    <button type="submit" class="btn">Send command</button>
+  </form>
+
+  {{if .Commands}}
+  <h3>Recent commands</h3>
+  <table class="list">
+    <thead><tr><th>When</th><th>Action</th><th>Status</th><th>Result</th></tr></thead>
+    <tbody>
+    {{range .Commands}}
+    <tr><td>{{timefmt .CreatedAt}}</td><td><code>{{.Action}}</code></td><td>{{.Status}}</td><td class="wrap">{{.Result}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{end}}
+</div>
+{{else}}
+<div class="card"><p class="muted">No worker nodes registered yet. Generate an enroll token above and start a worker.</p></div>
+{{end}}
+{{end}}
+{{end}}
+{{template "footer" .}}

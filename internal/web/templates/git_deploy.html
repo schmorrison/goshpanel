@@ -1,0 +1,17 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/git-deploy/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Domain <select name="domain_id">{{range .Domains}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></label>
+    <label>Repo path <input name="path" placeholder="/srv/site/repo" required></label>
+    <label>Branch <input name="branch" value="main"></label>
+    <label>Webhook secret <input name="webhook_secret"></label>
+    <button class="btn btn-primary">Register</button>
+  </form>
+  <p class="muted">Webhook URL: <code>POST /hooks/git/{id}?token=secret</code></p>
+  <table class="list"><tbody>{{range .Repos}}<tr><td>#{{.ID}}</td><td>{{.Path}}</td><td>{{.Branch}}</td></tr>{{end}}</tbody></table>
+</div>
+{{end}}
+{{template "footer" .}}
