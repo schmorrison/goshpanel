@@ -22,12 +22,14 @@ func newTestService(t *testing.T) (*Service, *store.Store) {
 func TestBootstrapAndLogin(t *testing.T) {
 	svc, _ := newTestService(t)
 
-	if err := svc.Bootstrap("admin", "hunter2hunter2"); err != nil {
-		t.Fatalf("Bootstrap: %v", err)
+	created, err := svc.Bootstrap("admin", "hunter2hunter2")
+	if err != nil || !created {
+		t.Fatalf("Bootstrap: created=%v err=%v", created, err)
 	}
 	// Second bootstrap is a no-op.
-	if err := svc.Bootstrap("admin", "different"); err != nil {
-		t.Fatalf("second Bootstrap: %v", err)
+	created, err = svc.Bootstrap("admin", "different")
+	if err != nil || created {
+		t.Fatalf("second Bootstrap: created=%v err=%v", created, err)
 	}
 
 	sess, _, err := svc.Login("admin", "hunter2hunter2")
@@ -60,11 +62,35 @@ func TestBootstrapAndLogin(t *testing.T) {
 
 func TestBootstrapRequiresPassword(t *testing.T) {
 	svc, _ := newTestService(t)
-	if err := svc.Bootstrap("admin", ""); err == nil {
+	if _, err := svc.Bootstrap("admin", ""); err == nil {
 		t.Error("empty bootstrap password accepted with no users")
 	}
-	if err := svc.Bootstrap("admin", "short"); err == nil {
+	if _, err := svc.Bootstrap("admin", "short"); err == nil {
 		t.Error("short bootstrap password accepted with no users")
+	}
+}
+
+func TestResetBootstrapPassword(t *testing.T) {
+	svc, _ := newTestService(t)
+	created, err := svc.Bootstrap("admin", "originalpass")
+	if err != nil || !created {
+		t.Fatalf("Bootstrap: %v", err)
+	}
+
+	reset, err := svc.ResetBootstrapPassword("admin", "newpassword", false)
+	if err != nil || reset {
+		t.Fatalf("reset without flag: reset=%v err=%v", reset, err)
+	}
+	if _, _, err := svc.Login("admin", "newpassword"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Error("password changed without reset flag")
+	}
+
+	reset, err = svc.ResetBootstrapPassword("admin", "newpassword", true)
+	if err != nil || !reset {
+		t.Fatalf("reset with flag: reset=%v err=%v", reset, err)
+	}
+	if _, _, err := svc.Login("admin", "newpassword"); err != nil {
+		t.Errorf("login with reset password: %v", err)
 	}
 }
 

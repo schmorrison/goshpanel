@@ -138,8 +138,22 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 		s.fleet = fleet.NewController(st)
 	}
 
-	if err := s.auth.Bootstrap(cfg.BootstrapUser, cfg.BootstrapPassword); err != nil {
+	created, err := s.auth.Bootstrap(cfg.BootstrapUser, cfg.BootstrapPassword)
+	if err != nil {
 		return nil, err
+	}
+	if created {
+		logger.Info("bootstrap admin created", "username", cfg.BootstrapUser)
+	} else {
+		reset, err := s.auth.ResetBootstrapPassword(cfg.BootstrapUser, cfg.BootstrapPassword, cfg.BootstrapReset)
+		if err != nil {
+			return nil, err
+		}
+		if reset {
+			logger.Warn("bootstrap admin password reset", "username", cfg.BootstrapUser)
+		} else if cfg.BootstrapPassword != "" {
+			logger.Info("bootstrap skipped: users already exist; GOSHPANEL_BOOTSTRAP_PASSWORD is ignored (set GOSHPANEL_BOOTSTRAP_RESET=true to update the admin password, or delete the database to start fresh)")
+		}
 	}
 	if cfg.SecretsKey != "" {
 		if v, err := secrets.NewVault(cfg.SecretsKey); err == nil {

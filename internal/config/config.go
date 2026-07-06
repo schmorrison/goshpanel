@@ -25,6 +25,9 @@ type Config struct {
 	// when the store contains no users.
 	BootstrapUser     string
 	BootstrapPassword string
+	// BootstrapReset updates the bootstrap user's password when users already
+	// exist (local dev recovery — do not enable in production).
+	BootstrapReset bool
 	// SessionTTLMinutes controls how long a login session stays valid.
 	SessionTTLMinutes int
 	// CommandRunnerEnabled toggles the /terminal command runner module.
@@ -118,6 +121,7 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 	}
 	cfg.CommandRunnerEnabled = b
 
+	cfg.BootstrapReset = parseBool(get("BOOTSTRAP_RESET", "false"), "BOOTSTRAP_RESET", &err)
 	cfg.OrchestratorEnabled = parseBool(get("ORCHESTRATOR", "true"), "ORCHESTRATOR", &err)
 	cfg.CaddyConfigPath = get("CADDY_CONFIG", filepath.Join(cfg.DataDir, "generated", "Caddyfile"))
 	cfg.CoreDNSConfigDir = get("COREDNS_DIR", filepath.Join(cfg.DataDir, "generated", "coredns"))

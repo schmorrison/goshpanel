@@ -68,6 +68,22 @@ $env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
 
 Open http://127.0.0.1:4674 (sign in as `admin`). Logs are written to `data\goshpanel.log` if the console closes. The bootstrap password must be **at least 8 characters**.
 
+If login fails with "invalid username or password", the admin account was probably created on an earlier run with a different password. Either use that password, reset it:
+
+```powershell
+$env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
+$env:GOSHPANEL_BOOTSTRAP_RESET="true"
+.\goshpanel.exe
+```
+
+Or delete the local database and start fresh:
+
+```powershell
+Remove-Item data\goshpanel.db* -ErrorAction SilentlyContinue
+$env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
+.\goshpanel.exe
+```
+
 ## Configuration
 
 Everything is an environment variable:
@@ -79,6 +95,7 @@ Everything is an environment variable:
 | `GOSHPANEL_FILES_ROOT` | `data/workspace` | File manager sandbox root |
 | `GOSHPANEL_BOOTSTRAP_USER` | `admin` | First-run admin username |
 | `GOSHPANEL_BOOTSTRAP_PASSWORD` | — | First-run admin password (required until a user exists) |
+| `GOSHPANEL_BOOTSTRAP_RESET` | `false` | When `true`, updates the bootstrap user's password on startup (local dev only) |
 | `GOSHPANEL_SESSION_TTL_MINUTES` | `720` | Login session lifetime |
 | `GOSHPANEL_LOG_SOURCES` | — | Comma-separated allowlist of log files for the viewer |
 | `GOSHPANEL_COMMAND_RUNNER` | `true` | Enable/disable the terminal module |

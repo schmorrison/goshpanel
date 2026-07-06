@@ -27,24 +27,50 @@ func New(st *store.Store, sessionTTL time.Duration) *Service {
 }
 
 // Bootstrap creates the initial admin user when no users exist.
-func (s *Service) Bootstrap(username, password string) error {
+// The second return value reports whether a new user was created.
+func (s *Service) Bootstrap(username, password string) (bool, error) {
 	n, err := s.store.CountUsers()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if n > 0 {
-		return nil
+		return false, nil
 	}
 	if password == "" {
-		return errors.New("no users exist: set GOSHPANEL_BOOTSTRAP_PASSWORD to create the first admin")
+		return false, errors.New("no users exist: set GOSHPANEL_BOOTSTRAP_PASSWORD to create the first admin")
 	}
 	if len(password) < 8 {
-		return errors.New("GOSHPANEL_BOOTSTRAP_PASSWORD must be at least 8 characters")
+		return false, errors.New("GOSHPANEL_BOOTSTRAP_PASSWORD must be at least 8 characters")
 	}
 	if _, err := s.CreateUser(username, password, "admin"); err != nil {
-		return fmt.Errorf("bootstrap admin: %w", err)
+		return false, fmt.Errorf("bootstrap admin: %w", err)
 	}
-	return nil
+	return true, nil
+}
+
+// ResetBootstrapPassword updates the bootstrap user's password when local
+// recovery is explicitly requested via GOSHPANEL_BOOTSTRAP_RESET=true.
+func (s *Service) ResetBootstrapPassword(username, password string, reset bool) (bool, error) {
+	if !reset {
+		return false, nil
+	}
+	if password == "" {
+		return false, errors.New("GOSHPANEL_BOOTSTRAP_RESET requires GOSHPANEL_BOOTSTRAP_PASSWORD")
+	}
+	if len(password) < 8 {
+		return false, errors.New("GOSHPANEL_BOOTSTRAP_PASSWORD must be at least 8 characters")
+	}
+	u, err := s.store.UserByUsername(strings.TrimSpace(username))
+	if errors.Is(err, store.ErrNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if err := s.ChangePassword(u.ID, password); err != nil {
+		return false, fmt.Errorf("reset bootstrap password: %w", err)
+	}
+	return true, nil
 }
 
 // CreateUser validates and creates an account.
