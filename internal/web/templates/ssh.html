@@ -1,0 +1,18 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{range .Rows}}
+<div class="card">
+  <h2>{{.User.Username}}</h2>
+  <form method="post" action="/ssh/keys/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="user_id" value="{{.User.ID}}">
+    <textarea name="public_key" rows="2" placeholder="ssh-ed25519 AAAA... comment" required></textarea>
+    <input type="text" name="comment" placeholder="laptop">
+    <button class="btn">Add key</button>
+  </form>
+  <table class="list"><tbody>{{range .Keys}}<tr><td class="wrap"><code>{{.PublicKey}}</code></td><td><form method="post" action="/ssh/keys/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Remove</button></form></td></tr>{{end}}</tbody></table>
+</div>
+{{end}}
+{{end}}
+{{template "footer" .}}

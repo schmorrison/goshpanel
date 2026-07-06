@@ -1,0 +1,85 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{$types := .RecordTypes}}
+<div class="grid grid-2">
+  <form class="card" method="post" action="/domains/create">
+    <h2>Add domain</h2>
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Domain name <input type="text" name="name" placeholder="example.com" required></label>
+    <label>Document root <input type="text" name="root" placeholder="/srv/example.com/public"></label>
+    <label>Upstream (reverse proxy) <input type="text" name="upstream" placeholder="localhost:3000 (optional)"></label>
+    <button type="submit" class="btn btn-primary">Add domain</button>
+  </form>
+  <div class="card">
+    <h2>Web server config</h2>
+    <p class="muted">GoshPanel renders a Caddyfile from your domains. Download it and load it into Caddy (automatic HTTPS included).</p>
+    <a class="btn" href="/domains/caddyfile">Download Caddyfile</a>
+  </div>
+</div>
+
+{{range .Rows}}
+<div class="card">
+  <div class="card-head">
+    <h2>{{.Domain.Name}}</h2>
+    <div class="actions">
+      <a class="btn btn-sm" href="/domains/{{.Domain.ID}}/zone">Zone file</a>
+      <form method="post" action="/domains/{{.Domain.ID}}/deliverability">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <button type="submit" class="btn btn-sm">Add SPF/DMARC/DKIM</button>
+      </form>
+      <form method="post" action="/domains/{{.Domain.ID}}/dkim">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="selector" value="goshpanel">
+        <button type="submit" class="btn btn-sm">Generate DKIM key</button>
+      </form>
+      <form method="post" action="/domains/delete">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="id" value="{{.Domain.ID}}">
+        <button type="submit" class="btn btn-sm btn-danger">Delete domain</button>
+      </form>
+    </div>
+  </div>
+  <p class="muted">
+    {{if .Domain.Root}}root: <code>{{.Domain.Root}}</code>{{end}}
+    {{if .Domain.Upstream}} upstream: <code>{{.Domain.Upstream}}</code>{{end}}
+  </p>
+  <table class="list">
+    <thead><tr><th>Type</th><th>Name</th><th>Value</th><th>TTL</th><th>Priority</th><th class="actions-col"></th></tr></thead>
+    <tbody>
+    {{range .Records}}
+    <tr>
+      <td><code>{{.Type}}</code></td>
+      <td>{{.Name}}</td>
+      <td class="wrap">{{.Value}}</td>
+      <td>{{.TTL}}</td>
+      <td>{{if or (eq .Type "MX") (eq .Type "SRV")}}{{.Priority}}{{else}}&mdash;{{end}}</td>
+      <td class="actions">
+        <form method="post" action="/dns/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="6" class="muted">No DNS records yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+  <form class="form-row" method="post" action="/dns/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="domain_id" value="{{.Domain.ID}}">
+    <select name="type">{{range $types}}<option value="{{.}}">{{.}}</option>{{end}}</select>
+    <input type="text" name="name" placeholder="@ or subdomain" required>
+    <input type="text" name="value" placeholder="value / target" required>
+    <input type="number" name="ttl" placeholder="TTL" value="3600" min="0">
+    <input type="number" name="priority" placeholder="Priority" value="0" min="0">
+    <button type="submit" class="btn">Add record</button>
+  </form>
+</div>
+{{else}}
+<div class="card"><p class="muted">No domains yet. Add your first domain to manage its DNS zone and web server config.</p></div>
+{{end}}
+{{end}}
+{{template "footer" .}}

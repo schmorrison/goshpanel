@@ -1,0 +1,52 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<p class="muted">Create short links served by the panel at <code>{{.BaseURL}}/s/{code}</code>, or on a custom host via Caddy (apply orchestrator after adding host-based links).</p>
+
+<div class="card">
+  <h2>New short link</h2>
+  <form method="post" action="/short/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Code <input name="code" placeholder="auto-generated if empty"></label>
+    <label>Target URL <input name="target_url" type="url" placeholder="https://example.com/page" required></label>
+    <label>Custom host (optional) <input name="host" placeholder="go.example.com"></label>
+    <button class="btn btn-primary">Create link</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Short links</h2>
+  <table class="list">
+    <thead><tr><th>Short URL</th><th>Target</th><th>Clicks</th><th></th></tr></thead>
+    <tbody>
+    {{range .Links}}
+    <tr>
+      <td class="wrap">
+        {{if .Host}}<code>https://{{.Host}}/{{.Code}}</code>{{else}}<code>{{$.Data.BaseURL}}/s/{{.Code}}</code>{{end}}
+      </td>
+      <td class="wrap">
+        <form class="form-row" method="post" action="/short/update">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <input name="target_url" type="url" value="{{.TargetURL}}" required class="grow">
+          <input name="host" placeholder="host" value="{{.Host}}" class="input-sm">
+          <button class="btn btn-sm">Save</button>
+        </form>
+      </td>
+      <td>{{.Clicks}}</td>
+      <td>
+        <form method="post" action="/short/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No short links yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{template "footer" .}}

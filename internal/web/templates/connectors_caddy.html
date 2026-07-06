@@ -1,0 +1,44 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="toolbar">
+  {{if .Connectors}}
+  <span class="muted">Connector:</span>
+  {{range .Connectors}}
+  <a class="btn btn-sm{{if eq $.Data.Connector.ID .ID}} btn-primary{{end}}" href="/connectors/caddy?id={{.ID}}">{{.Name}}</a>
+  {{end}}
+  {{else}}
+  <span class="muted">Using local Caddy paths from <code>GOSHPANEL_CADDY_CONFIG</code></span>
+  {{end}}
+  <a class="btn btn-sm" href="/connectors">All connectors</a>
+  <a class="btn btn-sm" href="/orchestrator">Orchestrator</a>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>Caddyfile — <code>{{.ConfigPath}}</code></h2>
+    <div class="actions">
+      <form method="post" action="/connectors/caddy/reload">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="connector_id" value="{{.Connector.ID}}">
+        <button type="submit" class="btn btn-sm btn-primary">Reload Caddy</button>
+      </form>
+    </div>
+  </div>
+  <form method="post" action="/connectors/caddy/save">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="connector_id" value="{{.Connector.ID}}">
+    <textarea name="caddyfile" class="editor" rows="22" spellcheck="false">{{.Caddyfile}}</textarea>
+    <div class="toolbar">
+      <button type="submit" class="btn btn-primary">Save Caddyfile</button>
+    </div>
+  </form>
+  <p class="muted">Orchestrator <strong>Apply Caddy</strong> also writes through the default Caddy connector and reloads.</p>
+</div>
+
+<div class="card">
+  <h2>Logs <span class="muted">({{.LogSource}})</span></h2>
+  <pre class="terminal-output">{{if .Logs}}{{.Logs}}{{else}}No logs yet.{{end}}</pre>
+</div>
+{{end}}
+{{template "footer" .}}

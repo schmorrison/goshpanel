@@ -1,0 +1,15 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/waf/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Host <input name="host" required></label>
+    <label>Policy path <input name="policy_path" placeholder="/etc/coraza/coraza.conf"></label>
+    <button class="btn btn-primary">Enable WAF</button>
+  </form>
+  <table class="list"><tbody>{{range .Sites}}<tr><td>{{.Host}}</td><td>{{.PolicyPath}}</td><td><form method="post" action="/waf/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Remove</button></form></td></tr>{{end}}</tbody></table>
+  <pre class="code-block">{{.Stub}}</pre>
+</div>
+{{end}}
+{{template "footer" .}}

@@ -1,0 +1,47 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{if .Incident}}<div class="flash flash-err">INCIDENT MODE ACTIVE</div>{{end}}
+<div class="grid grid-4">
+  <div class="card stat"><div class="stat-label">Load</div><div class="stat-value">{{printf "%.2f" .Stats.Load1}}</div></div>
+  <div class="card stat"><div class="stat-label">Memory</div><div class="stat-value">{{printf "%.0f%%" .Stats.MemUsedPct}}</div></div>
+  <div class="card stat"><div class="stat-label">Disk</div><div class="stat-value">{{printf "%.0f%%" .Stats.DiskUsedPct}}</div></div>
+  <div class="card stat"><div class="stat-label">Uptime</div><div class="stat-value">{{durfmt .Stats.Uptime}}</div></div>
+</div>
+<div class="grid grid-2">
+<div class="card">
+  <h2>Incident mode</h2>
+  <form method="post" action="/mission/incident">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="enable" value="{{if .Incident}}0{{else}}1{{end}}">
+    <button class="btn {{if .Incident}}btn-danger{{else}}btn-primary{{end}}">{{if .Incident}}Clear incident{{else}}Activate incident mode{{end}}</button>
+  </form>
+  <p class="muted">Creates a backup snapshot and logs an alert.</p>
+</div>
+{{if .FleetActive}}
+<div class="card">
+  <h2>Fleet operations</h2>
+  <form method="post" action="/mission/fleet/backup-all"><input type="hidden" name="csrf_token" value="{{$csrf}}"><button class="btn">Backup all nodes</button></form>
+  <form class="form-row" method="post" action="/mission/fleet/rolling">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <select name="action"><option value="docker_stack_up">stack up</option><option value="apply_caddy">apply caddy</option></select>
+    <input name="stack" placeholder="stack name">
+    <button class="btn btn-primary">Rolling deploy</button>
+  </form>
+  <a href="/fleet/logs" class="btn">Centralized logs</a>
+</div>
+{{end}}
+</div>
+{{if .Alerts}}<div class="card"><h2>Alerts</h2><ul>{{range .Alerts}}<li>{{.Message}} <span class="muted">{{timefmt .CreatedAt}}</span></li>{{end}}</ul></div>{{end}}
+{{if .FleetActive}}
+<div class="card"><h2>Fleet map</h2>
+<div class="fleet-map">{{range .Nodes}}
+<div class="fleet-node {{if .Online}}online{{end}}">
+  <strong>{{.Node.Name}}</strong>
+  {{if .Online}}<span class="badge-ok">online</span>{{else}}<span class="badge-warn">offline</span>{{end}}
+  {{if .Drift}}<p class="muted">Drift: {{range .Drift}}<code>{{.}}</code> {{end}}</p>{{end}}
+</div>
+{{end}}</div></div>
+{{end}}
+{{end}}
+{{template "footer" .}}

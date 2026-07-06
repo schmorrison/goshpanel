@@ -1,0 +1,16 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/ddns/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Hostname <input name="hostname" required></label>
+    <label>Provider <select name="provider"><option>generic</option><option>cloudflare</option></select></label>
+    <label>Update URL <input name="update_url" placeholder="https://provider/update?hostname={hostname}&amp;ip={ip}"></label>
+    <label>Token <input name="token"></label>
+    <button class="btn btn-primary">Add</button>
+  </form>
+  <table class="list"><tbody>{{range .Configs}}<tr><td>{{.Hostname}}</td><td>{{.Provider}}</td><td>{{timefmtPtr .LastUpdate}}</td><td><form method="post" action="/ddns/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{{end}}</tbody></table>
+</div>
+{{end}}
+{{template "footer" .}}

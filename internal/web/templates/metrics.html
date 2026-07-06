@@ -1,0 +1,123 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="perf-toolbar">
+  <p class="muted">Node <code>{{.NodeName}}</code> · sampling every {{.Interval}}s · fleet <code>{{.Mode}}</code></p>
+  <div class="perf-range">
+    <a href="/metrics?range=1h" class="btn btn-sm {{if eq .Range "1h"}}btn-primary{{end}}">1h</a>
+    <a href="/metrics?range=6h" class="btn btn-sm {{if eq .Range "6h"}}btn-primary{{end}}">6h</a>
+    <a href="/metrics?range=24h" class="btn btn-sm {{if eq .Range "24h"}}btn-primary{{end}}">24h</a>
+    <a href="/metrics?range=7d" class="btn btn-sm {{if eq .Range "7d"}}btn-primary{{end}}">7d</a>
+  </div>
+</div>
+
+<div class="grid grid-4">
+  <div class="card perf-stat">
+    <div class="stat-label">Load (1m)</div>
+    <div class="stat-value">{{printf "%.2f" .Stats.Load1}}</div>
+    <div class="gauge"><div class="gauge-fill {{gaugeLevel (loadUtil .Stats.Load1 .Stats.NumCPU)}}" style="width:{{printf "%.0f" (loadUtil .Stats.Load1 .Stats.NumCPU)}}%"></div></div>
+    <div class="muted">{{printf "%.2f / %.2f (5m / 15m)" .Stats.Load5 .Stats.Load15}} · {{.Stats.NumCPU}} cores</div>
+  </div>
+  <div class="card perf-stat">
+    <div class="stat-label">Memory</div>
+    <div class="stat-value">{{printf "%.0f%%" .Stats.MemUsedPct}}</div>
+    <div class="gauge"><div class="gauge-fill {{gaugeLevel .Stats.MemUsedPct}}" style="width:{{printf "%.0f" .Stats.MemUsedPct}}%"></div></div>
+    <div class="muted">{{humanKB .Stats.MemUsedKB}} of {{humanKB .Stats.MemTotalKB}}</div>
+  </div>
+  <div class="card perf-stat">
+    <div class="stat-label">Disk ({{.FilesRoot}})</div>
+    <div class="stat-value">{{printf "%.0f%%" .Stats.DiskUsedPct}}</div>
+    <div class="gauge"><div class="gauge-fill {{gaugeLevel .Stats.DiskUsedPct}}" style="width:{{printf "%.0f" .Stats.DiskUsedPct}}%"></div></div>
+    <div class="muted">{{humanKB .Stats.DiskUsedKB}} of {{humanKB .Stats.DiskTotalKB}}</div>
+  </div>
+  <div class="card perf-stat">
+    <div class="stat-label">Uptime</div>
+    <div class="stat-value">{{durfmt .Stats.Uptime}}</div>
+    <div class="gauge gauge-neutral"><div class="gauge-fill gauge-ok" style="width:100%"></div></div>
+    <div class="muted">host · panel up since {{timefmt .Stats.PanelStarted}}</div>
+  </div>
+</div>
+
+{{if .HasHistory}}
+<div class="grid grid-3">
+  <div class="card perf-chart-card">
+    <div class="perf-chart-head">
+      <h2>{{.LoadChart.Label}}</h2>
+      <span class="perf-now">{{printf "%.2f" .LoadChart.Current}}</span>
+    </div>
+  {{.LoadChart.SVG}}
+    <div class="perf-chart-meta">
+      <span>min {{printf "%.2f" .LoadChart.Min}}</span>
+      <span>avg {{printf "%.2f" .LoadChart.Avg}}</span>
+      <span>max {{printf "%.2f" .LoadChart.Max}}</span>
+    </div>
+  </div>
+  <div class="card perf-chart-card">
+    <div class="perf-chart-head">
+      <h2>{{.MemChart.Label}}</h2>
+      <span class="perf-now">{{printf "%.1f" .MemChart.Current}}%</span>
+    </div>
+  {{.MemChart.SVG}}
+    <div class="perf-chart-meta">
+      <span>min {{printf "%.1f" .MemChart.Min}}%</span>
+      <span>avg {{printf "%.1f" .MemChart.Avg}}%</span>
+      <span>max {{printf "%.1f" .MemChart.Max}}%</span>
+    </div>
+  </div>
+  <div class="card perf-chart-card">
+    <div class="perf-chart-head">
+      <h2>{{.DiskChart.Label}}</h2>
+      <span class="perf-now">{{printf "%.1f" .DiskChart.Current}}%</span>
+    </div>
+  {{.DiskChart.SVG}}
+    <div class="perf-chart-meta">
+      <span>min {{printf "%.1f" .DiskChart.Min}}%</span>
+      <span>avg {{printf "%.1f" .DiskChart.Avg}}%</span>
+      <span>max {{printf "%.1f" .DiskChart.Max}}%</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>{{.RangeLabel}} · {{len .Samples}} samples</h2>
+  <div class="scroll-x">
+    <table class="list">
+      <thead><tr><th>Time</th><th>Load (1m)</th><th>Memory</th><th>Disk</th></tr></thead>
+      <tbody>
+      {{range .Samples}}
+      <tr>
+        <td>{{timefmt .RecordedAt}}</td>
+        <td>{{printf "%.2f" .Load1}}</td>
+        <td>{{printf "%.1f" .MemUsedPct}}%</td>
+        <td>{{printf "%.1f" .DiskUsedPct}}%</td>
+      </tr>
+      {{end}}
+      </tbody>
+    </table>
+  </div>
+</div>
+{{else}}
+<div class="card">
+  <h2>Collecting history</h2>
+  <p class="muted">Live stats are shown above. Historical charts appear after the background sampler records a few datapoints (<code>GOSHPANEL_METRICS=true</code>, every {{.Interval}}s).</p>
+</div>
+{{end}}
+
+<div class="grid grid-2">
+  <div class="card">
+    <h2>Server information</h2>
+    <table class="kv">
+      <tr><th>Hostname</th><td>{{.Stats.Hostname}}</td></tr>
+      <tr><th>Kernel</th><td>{{.Stats.KernelVer}}</td></tr>
+      <tr><th>OS / Arch</th><td>{{.Stats.OS}} / {{.Stats.Arch}}</td></tr>
+      <tr><th>CPU cores</th><td>{{.Stats.NumCPU}}</td></tr>
+      <tr><th>Panel runtime</th><td>{{.Stats.GoVersion}} (pid {{.Stats.PanelPID}})</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>About this page</h2>
+    <p class="muted">Pure Go metrics from <code>/proc</code> and disk usage, sampled into SQLite. Charts are inline SVG — no JavaScript required.</p>
+    <p class="muted">Fleet workers report similar telemetry to the controller at <a href="/fleet">/fleet</a>.</p>
+  </div>
+</div>
+{{end}}
+{{template "footer" .}}
