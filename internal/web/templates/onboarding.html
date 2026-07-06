@@ -1,0 +1,16 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <h2>Welcome to GoshPanel</h2>
+  <p class="muted">Quick setup — add your first domain and start managing your server.</p>
+  <form method="post" action="/onboarding/complete">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Primary domain <input name="domain" placeholder="example.com"></label>
+    <label>Document root <input name="root" placeholder="/srv/example.com"></label>
+    <label>Upstream <input name="upstream" placeholder="localhost:3000 (optional)"></label>
+    <button class="btn btn-primary">Finish setup</button>
+  </form>
+</div>
+{{end}}
+{{template "footer" .}}

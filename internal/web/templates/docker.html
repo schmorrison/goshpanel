@@ -1,0 +1,106 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+{{if not .Available}}
+<div class="card"><p class="muted">Docker CLI not found in PATH. Install Docker or set <code>GOSHPANEL_DOCKER=false</code> to hide this module.</p></div>
+{{else}}
+
+{{if .Error}}<div class="flash flash-err">{{.Error}}</div>{{end}}
+
+<div class="grid grid-2">
+  <form class="card" method="post" action="/docker/run">
+    <h2>Run container</h2>
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Image <input type="text" name="image" placeholder="nginx:alpine" required></label>
+    <label>Container name <input type="text" name="name" placeholder="my-nginx" required></label>
+    <label>Port mappings (comma-separated) <input type="text" name="ports" placeholder="8080:80"></label>
+    <label>Environment (comma-separated) <input type="text" name="env" placeholder="FOO=bar"></label>
+    <button type="submit" class="btn btn-primary">docker run -d</button>
+  </form>
+  <form class="card" method="post" action="/docker/stacks/create">
+    <h2>Save compose stack</h2>
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Stack name <input type="text" name="name" placeholder="my-stack" required></label>
+    <label>docker-compose.yml
+      <textarea name="compose_yaml" class="editor editor-sm" rows="8" placeholder="services:&#10;  web:&#10;    image: nginx:alpine&#10;    ports:&#10;      - '8080:80'" required></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary">Save stack</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Containers</h2>
+  <table class="list">
+    <thead><tr><th>ID</th><th>Name</th><th>Image</th><th>Status</th><th>Ports</th><th class="actions-col">Actions</th></tr></thead>
+    <tbody>
+    {{range .Containers}}
+    <tr>
+      <td><code>{{.ID}}</code></td>
+      <td>{{.Names}}</td>
+      <td>{{.Image}}</td>
+      <td>{{.Status}}</td>
+      <td class="wrap">{{.Ports}}</td>
+      <td class="actions">
+        <div class="action-group">
+        <a class="btn btn-sm" href="/docker?logs={{.ID}}">Logs</a>
+        <form method="post" action="/docker/start"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Start</button></form>
+        <form method="post" action="/docker/stop"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Stop</button></form>
+        <form method="post" action="/docker/restart"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Restart</button></form>
+        <form method="post" action="/docker/remove"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-danger">Remove</button></form>
+        </div>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="6" class="muted">No containers.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+{{if .LogsID}}
+<div class="card">
+  <h2>Logs — <code>{{.LogsID}}</code></h2>
+  <pre class="terminal-output">{{.Logs}}</pre>
+</div>
+{{end}}
+
+<div class="card">
+  <h2>Images</h2>
+  <table class="list">
+    <thead><tr><th>ID</th><th>Repository</th><th>Tag</th><th>Size</th></tr></thead>
+    <tbody>
+    {{range .Images}}
+    <tr><td><code>{{.ID}}</code></td><td>{{.RepoTags}}</td><td>{{.Tag}}</td><td>{{.Size}}</td></tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No images.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Compose stacks</h2>
+  <table class="list">
+    <thead><tr><th>Name</th><th>Created</th><th class="actions-col">Actions</th></tr></thead>
+    <tbody>
+    {{range .Stacks}}
+    <tr>
+      <td><code>{{.Name}}</code></td>
+      <td>{{timefmt .CreatedAt}}</td>
+      <td class="actions">
+        <div class="action-group">
+        <form method="post" action="/docker/stacks/up"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-primary">Up</button></form>
+        <form method="post" action="/docker/stacks/down"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Down</button></form>
+        <form method="post" action="/docker/stacks/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-danger">Delete</button></form>
+        </div>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="3" class="muted">No saved stacks.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{end}}
+{{template "footer" .}}

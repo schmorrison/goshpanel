@@ -1,0 +1,18 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/firewall/create" class="form-row">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="number" name="port" placeholder="port" required>
+    <select name="protocol"><option>tcp</option><option>udp</option></select>
+    <select name="action"><option>accept</option><option>drop</option></select>
+    <input type="text" name="comment" placeholder="comment">
+    <button class="btn btn-primary">Add rule</button>
+  </form>
+  <a class="btn" href="/firewall/download">Download nftables config</a>
+  <table class="list"><tbody>{{range .Rules}}<tr><td>{{.Protocol}} :{{.Port}} {{.Action}}</td><td>{{.Comment}}</td><td><form method="post" action="/firewall/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button class="btn btn-sm btn-danger">Delete</button></form></td></tr>{{end}}</tbody></table>
+  <pre class="code-block">{{.Config}}</pre>
+</div>
+{{end}}
+{{template "footer" .}}
