@@ -1,6 +1,7 @@
 {{template "header" .}}
 {{$csrf := .CSRF}}
 {{with .Data}}
+{{$dbConnectors := .DBConnectors}}
 <div class="grid grid-2">
   <form class="card" method="post" action="/databases/create">
     <h2>Add connection</h2>
@@ -41,6 +42,25 @@
     </table>
   </div>
 </div>
+
+{{if $dbConnectors}}
+<div class="card">
+  <h2>Provision database via connector</h2>
+  <p class="muted">Create a database (and optional user) on a registered Postgres or MySQL/MariaDB connector — typical for databases running in Docker.</p>
+  <form class="form-row" method="post" action="/databases/provision">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <select name="connector_id" required>
+      {{range $dbConnectors}}<option value="{{.ID}}">{{.Name}} ({{.Kind}})</option>{{end}}
+    </select>
+    <input type="text" name="database" placeholder="app_db" required>
+    <input type="text" name="conn_name" placeholder="saved connection name">
+    <input type="text" name="username" placeholder="app_user (optional)">
+    <input type="password" name="password" placeholder="user password">
+    <input type="text" name="privileges" placeholder="ALL" value="ALL">
+    <button type="submit" class="btn btn-primary">Create database</button>
+  </form>
+</div>
+{{end}}
 
 {{if .ActiveConn.ID}}
 <div class="card">

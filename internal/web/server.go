@@ -16,6 +16,7 @@ import (
 	"github.com/schmorrison/goshpanel/internal/auth"
 	"github.com/schmorrison/goshpanel/internal/backups"
 	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/connector"
 	"github.com/schmorrison/goshpanel/internal/docker"
 	"github.com/schmorrison/goshpanel/internal/files"
 	"github.com/schmorrison/goshpanel/internal/fleet"
@@ -48,6 +49,7 @@ type Server struct {
 	blocker *security.Blocker
 	runner  *runner.Service
 	orch    *orchestrator.Service
+	connect *connector.Registry
 	docker  *docker.Service
 	fns     *fn.Service
 	fleet   *fleet.Controller
@@ -109,16 +111,17 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 		logs:    logs.New(cfg.LogSources),
 		blocker: blocker,
 		runner:  runner.New(fileSvc.Root(), 60*time.Second, cfg.CommandRunnerEnabled),
-		orch: orchestrator.New(st, orchestrator.Paths{
-			CaddyConfig:    cfg.CaddyConfigPath,
-			CaddyAccessLog: cfg.CaddyAccessLog,
-			CoreDNSDir:     cfg.CoreDNSConfigDir,
-			MaddyConfig:    cfg.MaddyConfigPath,
-			SystemdDir:     cfg.SystemdUnitDir,
-		}),
+		connect: connector.NewRegistry(st, cfg),
 		tmpl: tmpl,
 		mux:  http.NewServeMux(),
 	}
+	s.orch = orchestrator.New(st, orchestrator.Paths{
+		CaddyConfig:    cfg.CaddyConfigPath,
+		CaddyAccessLog: cfg.CaddyAccessLog,
+		CoreDNSDir:     cfg.CoreDNSConfigDir,
+		MaddyConfig:    cfg.MaddyConfigPath,
+		SystemdDir:     cfg.SystemdUnitDir,
+	}, s.connect)
 	if cfg.DockerEnabled {
 		if d, err := docker.New(); err == nil {
 			s.docker = d
@@ -300,6 +303,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/v1/fleet/nodes", s.apiAuth(s.handleAPIFleetNodes))
 	s.mux.HandleFunc("POST /api/v1/fleet/nodes/{id}/command", s.apiAuth(s.handleAPIFleetCommand))
 	s.mux.HandleFunc("POST /api/v1/fleet/logs", s.fleetAuth(s.handleFleetLogsIngest))
+
+	// Service connectors
+	s.mux.HandleFunc("GET /connectors", s.requireAuth(s.handleConnectorsPage))
+	s.mux.HandleFunc("POST /connectors/create", s.requireAuth(s.handleConnectorCreate))
+	s.mux.HandleFunc("POST /connectors/delete", s.requireAuth(s.handleConnectorDelete))
+	s.mux.HandleFunc("POST /connectors/ping", s.requireAuth(s.handleConnectorPing))
+	s.mux.HandleFunc("POST /connectors/default", s.requireAuth(s.handleConnectorDefault))
+	s.mux.HandleFunc("GET /connectors/caddy", s.requireAuth(s.handleCaddyConnectorPage))
+	s.mux.HandleFunc("POST /connectors/caddy/save", s.requireAuth(s.handleCaddyConnectorSave))
+	s.mux.HandleFunc("POST /connectors/caddy/reload", s.requireAuth(s.handleCaddyConnectorReload))
+	s.mux.HandleFunc("POST /databases/provision", s.requireAuth(s.handleDatabaseProvision))
 
 	// Tools hub & helpers
 	s.mux.HandleFunc("GET /tools", s.requireAuth(s.handleToolsPage))

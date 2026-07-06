@@ -27,6 +27,8 @@ func (s *Server) handleToolsPage(w http.ResponseWriter, r *http.Request) {
 	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 	links := []struct{ Href, Label, Desc string }{
 		{"/http", "HTTP Client", "Postman-style request builder"},
+		{"/connectors", "Connectors", "Caddy in Docker, Postgres, MariaDB, remote Docker"},
+		{"/connectors/caddy", "Caddy Dashboard", "Edit Caddyfile, reload, tail logs"},
 		{"/api", "API & Explorer", "Bearer tokens and route catalog"},
 		{"/bandwidth", "Bandwidth", "Per-host traffic from access logs"},
 		{"/redirects", "Redirects & Aliases", "Caddy redirect and parked domains"},
@@ -471,7 +473,7 @@ func (s *Server) handleDBGrantCreate(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/databases", err)
 		return
 	}
-	if err := dbmanager.ApplyGrant(r.Context(), conn.Driver, conn.DSN, r.FormValue("username"), r.FormValue("database"), r.FormValue("privileges")); err != nil {
+	if err := dbmanager.ApplyGrant(r.Context(), conn.Driver, conn.DSN, r.FormValue("username"), r.FormValue("database"), r.FormValue("password"), r.FormValue("privileges")); err != nil {
 		redirectError(w, r, "/databases", err)
 		return
 	}

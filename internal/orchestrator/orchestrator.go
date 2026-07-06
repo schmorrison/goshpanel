@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/schmorrison/goshpanel/internal/connector"
 	"github.com/schmorrison/goshpanel/internal/dns"
 	"github.com/schmorrison/goshpanel/internal/domains"
 	"github.com/schmorrison/goshpanel/internal/email"
@@ -29,13 +30,14 @@ type Paths struct {
 
 // Service regenerates and applies infrastructure configs.
 type Service struct {
-	store *store.Store
-	paths Paths
+	store    *store.Store
+	paths    Paths
+	registry *connector.Registry
 }
 
 // New creates an orchestrator service.
-func New(st *store.Store, paths Paths) *Service {
-	return &Service{store: st, paths: paths}
+func New(st *store.Store, paths Paths, registry *connector.Registry) *Service {
+	return &Service{store: st, paths: paths, registry: registry}
 }
 
 // Result describes one apply operation.
@@ -65,15 +67,39 @@ func (s *Service) ApplyCaddy(ctx context.Context) Result {
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
 	}
-	if err := domains.WriteCaddyfileFull(s.caddyContext(domainsList), s.paths.CaddyConfig); err != nil {
-		res.Message = err.Error()
-		s.record("caddy", res.ConfigPath, res.Message)
-		return res
-	}
-	if err := domains.ApplyCaddyfile(ctx, s.paths.CaddyConfig); err != nil {
-		res.Message = err.Error()
-		s.record("caddy", res.ConfigPath, res.Message)
-		return res
+	ctxData := s.caddyContext(domainsList)
+	content := domains.RenderCaddyfileFull(ctxData)
+
+	if s.registry != nil {
+		conn, paths, err := s.registry.EffectiveCaddy()
+		if err != nil {
+			res.Message = err.Error()
+			s.record("caddy", res.ConfigPath, res.Message)
+			return res
+		}
+		client, err := s.registry.Caddy(conn, paths)
+		if err != nil {
+			res.Message = err.Error()
+			s.record("caddy", res.ConfigPath, res.Message)
+			return res
+		}
+		res.ConfigPath = client.ConfigPath()
+		if err := client.WriteAndReload(ctx, content); err != nil {
+			res.Message = err.Error()
+			s.record("caddy", res.ConfigPath, res.Message)
+			return res
+		}
+	} else {
+		if err := domains.WriteCaddyfileFull(ctxData, s.paths.CaddyConfig); err != nil {
+			res.Message = err.Error()
+			s.record("caddy", res.ConfigPath, res.Message)
+			return res
+		}
+		if err := domains.ApplyCaddyfile(ctx, s.paths.CaddyConfig); err != nil {
+			res.Message = err.Error()
+			s.record("caddy", res.ConfigPath, res.Message)
+			return res
+		}
 	}
 	res.OK = true
 	res.Message = fmt.Sprintf("reloaded %d domain(s)", len(domainsList))

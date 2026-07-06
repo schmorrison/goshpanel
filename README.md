@@ -28,6 +28,7 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Security | `/security` | Panel users & roles, password changes, 2FA, per-user SFTP dirs, IP blocker, audit log |
 | Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
+| Connectors | `/connectors` | Register Caddy-in-Docker, Postgres, MariaDB, remote Docker daemons |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
 | Fleet | `/fleet` | Multi-instance telemetry, per-node performance charts, remote backup/docker/orchestrator control |
 | Performance | `/metrics` | Live gauges, SVG history charts (1h–7d), sampled metrics |

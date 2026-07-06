@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/schmorrison/goshpanel/internal/config"
+	"github.com/schmorrison/goshpanel/internal/connector"
 	"github.com/schmorrison/goshpanel/internal/store"
 )
 
@@ -24,7 +26,10 @@ func testOrchestrator(t *testing.T) (*Service, *store.Store, string) {
 		MaddyConfig: filepath.Join(dir, "maddy.conf"),
 		SystemdDir:  filepath.Join(dir, "systemd"),
 	}
-	return New(st, paths), st, dir
+	reg := connector.NewRegistry(st, config.Config{
+		CaddyConfigPath: paths.CaddyConfig,
+	})
+	return New(st, paths, reg), st, dir
 }
 
 func TestApplyCaddyWritesConfig(t *testing.T) {

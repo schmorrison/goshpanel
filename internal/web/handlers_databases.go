@@ -10,7 +10,8 @@ import (
 )
 
 type databasesData struct {
-	Conns []store.DatabaseConn
+	Conns        []store.DatabaseConn
+	DBConnectors []store.ServiceConnector
 
 	ActiveConn store.DatabaseConn
 	SQL        string
@@ -27,7 +28,11 @@ func (s *Server) handleDatabasesPage(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/", err)
 		return
 	}
-	data := databasesData{Conns: conns}
+	dbConnectors, _ := s.store.ServiceConnectorsByKind("postgres")
+	if mysql, err := s.store.ServiceConnectorsByKind("mysql"); err == nil {
+		dbConnectors = append(dbConnectors, mysql...)
+	}
+	data := databasesData{Conns: conns, DBConnectors: dbConnectors}
 
 	if idStr := r.URL.Query().Get("conn"); idStr != "" {
 		id, err := strconv.ParseInt(idStr, 10, 64)
@@ -92,6 +97,10 @@ func (s *Server) handleDatabaseQuery(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/databases", err)
 		return
 	}
+	dbConnectors, _ := s.store.ServiceConnectorsByKind("postgres")
+	if mysql, err := s.store.ServiceConnectorsByKind("mysql"); err == nil {
+		dbConnectors = append(dbConnectors, mysql...)
+	}
 
 	sqlText := r.FormValue("sql")
 	writeMode := r.FormValue("write_mode") == "1"
@@ -100,7 +109,7 @@ func (s *Server) handleDatabaseQuery(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := databasesData{Conns: conns, ActiveConn: conn, SQL: sqlText, WriteMode: writeMode}
+	data := databasesData{Conns: conns, DBConnectors: dbConnectors, ActiveConn: conn, SQL: sqlText, WriteMode: writeMode}
 	if tables, err := dbmanager.Tables(r.Context(), conn.Driver, conn.DSN); err == nil {
 		data.Tables = tables
 	}
