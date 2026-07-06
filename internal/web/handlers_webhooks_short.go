@@ -6,9 +6,11 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/schmorrison/goshpanel/internal/shortener"
 	"github.com/schmorrison/goshpanel/internal/store"
+	"github.com/schmorrison/goshpanel/internal/webhooks"
 )
 
 type shortLinksData struct {
@@ -78,6 +80,34 @@ func (s *Server) handleShortLinkDelete(w http.ResponseWriter, r *http.Request) {
 	redirectFlash(w, r, "/short", "Short link removed")
 }
 
+func (s *Server) handleShortLinkUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := formID(r, "id")
+	if err != nil {
+		redirectError(w, r, "/short", err)
+		return
+	}
+	prev, err := s.store.ShortLinkByID(id)
+	if err != nil {
+		redirectError(w, r, "/short", err)
+		return
+	}
+	target, err := shortener.ValidateTarget(r.FormValue("target_url"))
+	if err != nil {
+		redirectError(w, r, "/short", err)
+		return
+	}
+	host := r.FormValue("host")
+	if err := s.store.UpdateShortLink(id, target, host); err != nil {
+		redirectError(w, r, "/short", err)
+		return
+	}
+	if prev.Host != host {
+		s.maybeAutoApply(r.Context())
+	}
+	s.audit(r, "short.update", prev.Code)
+	redirectFlash(w, r, "/short", "Short link updated")
+}
+
 func (s *Server) handleShortRedirect(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
 	link, err := s.store.ShortLinkByCode("", code)
@@ -135,6 +165,24 @@ func (s *Server) handleWebhookOutboundDelete(w http.ResponseWriter, r *http.Requ
 	redirectFlash(w, r, "/webhooks", "Outbound webhook removed")
 }
 
+func (s *Server) handleWebhookOutboundTest(w http.ResponseWriter, r *http.Request) {
+	id, err := formID(r, "id")
+	if err != nil {
+		redirectError(w, r, "/webhooks", err)
+		return
+	}
+	if s.hooks == nil {
+		redirectError(w, r, "/webhooks", fmt.Errorf("webhooks disabled"))
+		return
+	}
+	if err := s.hooks.SendTest(r.Context(), id); err != nil {
+		redirectError(w, r, "/webhooks", err)
+		return
+	}
+	s.audit(r, "webhooks.outbound.test", strconv.FormatInt(id, 10))
+	redirectFlash(w, r, "/webhooks", "Test webhook delivered")
+}
+
 func (s *Server) handleWebhookInboundCreate(w http.ResponseWriter, r *http.Request) {
 	token := r.FormValue("token")
 	if token == "" {
@@ -149,7 +197,9 @@ func (s *Server) handleWebhookInboundCreate(w http.ResponseWriter, r *http.Reque
 	if action == "" {
 		action = "log"
 	}
-	cfg := map[string]string{}
+	cfg := map[string]string{
+		"secret": r.FormValue("secret"),
+	}
 	if action == "run_function" {
 		cfg["function_name"] = r.FormValue("function_name")
 		cfg["token"] = r.FormValue("function_token")
@@ -189,6 +239,12 @@ func (s *Server) handleInboundWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	var hookCfg inboundHookConfig
+	_ = json.Unmarshal([]byte(hook.ConfigJSON), &hookCfg)
+	if !verifyInboundSecret(r, body, hookCfg.Secret) {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
 	switch hook.Action {
 	case "apply_caddy":
 		if s.orch != nil {
@@ -223,4 +279,30 @@ func (s *Server) handleInboundWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte("ok"))
+}
+
+type inboundHookConfig struct {
+	Secret       string `json:"secret"`
+	FunctionName string `json:"function_name"`
+	Token        string `json:"token"`
+}
+
+func verifyInboundSecret(r *http.Request, body []byte, secret string) bool {
+	secret = strings.TrimSpace(secret)
+	if secret == "" {
+		return true
+	}
+	if r.URL.Query().Get("secret") == secret {
+		return true
+	}
+	if hdr := r.Header.Get("Authorization"); strings.HasPrefix(hdr, "Bearer ") {
+		if strings.TrimSpace(strings.TrimPrefix(hdr, "Bearer ")) == secret {
+			return true
+		}
+	}
+	if sig := r.Header.Get("X-GoshPanel-Signature"); strings.HasPrefix(sig, "sha256=") {
+		// Caller signed the raw body with the shared secret.
+		return webhooks.VerifySignature(secret, body, strings.TrimPrefix(sig, "sha256="))
+	}
+	return false
 }

@@ -28,6 +28,12 @@
         {{else}}<span class="muted">never</span>{{end}}
       </td>
       <td>
+        <div class="action-group">
+        <form method="post" action="/webhooks/outbound/test">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="btn btn-sm">Test</button>
+        </form>
         <form method="post" action="/webhooks/outbound/delete">
           <input type="hidden" name="csrf_token" value="{{$csrf}}">
           <input type="hidden" name="id" value="{{.ID}}">
@@ -48,6 +54,7 @@
     <input type="hidden" name="csrf_token" value="{{$csrf}}">
     <label>Name <input name="name" required></label>
     <label>Token <input name="token" placeholder="auto-generated if empty"></label>
+    <label>Shared secret (optional) <input name="secret" placeholder="?secret= or Bearer token"></label>
     <label>Action
       <select name="action">
         <option value="log">Log payload</option>

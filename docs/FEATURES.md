@@ -40,9 +40,9 @@ Legend:
 |---|---|---|---|
 | Domains / Addon domains / Subdomains | Pure Go + Caddy | **Implemented** | Domain records with doc root and/or reverse-proxy upstream |
 | Zone Editor (DNS records) | Pure Go | **Implemented** | A, AAAA, CNAME, MX, TXT, NS, SRV with validation; RFC 1035 zone file export (serve with CoreDNS) |
-| Redirects | Caddy `redir` directive | Planned | Add redirect rules to Caddyfile renderer |
-| Aliases (parked domains) | Caddy multi-site blocks | Planned | |
-| Dynamic DNS | Pure Go | Planned | |
+| Redirects | Caddy `redir` directive | **Implemented** | `/redirects` + URL shortener at `/short` |
+| Aliases (parked domains) | Caddy multi-site blocks | **Implemented** | `/redirects` domain aliases |
+| Dynamic DNS | Pure Go | **Implemented** | `/ddns` |
 | Web server vhost config | Config export | **Implemented** | Caddyfile generated & downloadable; `caddy reload` process call when binary present |
 
 ## Email
@@ -100,7 +100,7 @@ Legend:
 | Indexes (directory listing) | Caddy `file_server browse` | Planned | Toggle per domain |
 | Error Pages | Caddy `handle_errors` | Planned | |
 | Track DNS (dig/traceroute) | Pure Go (`net.Resolver`) | Planned | |
-| API / webhooks | Pure Go | Planned | JSON API mirroring the UI actions |
+| API / webhooks | Pure Go | **Implemented (partial)** | Bearer-token API at `/api`; outbound audit webhooks + inbound hooks at `/webhooks` |
 
 ## PHP/Software (cPanel "Software" section)
 

@@ -57,6 +57,20 @@ func (s *Store) DeleteShortLink(id int64) error {
 	return s.mustAffect(s.db.Exec(`DELETE FROM short_links WHERE id = ?`, id))
 }
 
+func (s *Store) UpdateShortLink(id int64, targetURL, host string) error {
+	return s.mustAffect(s.db.Exec(`UPDATE short_links SET target_url = ?, host = ? WHERE id = ?`, targetURL, host, id))
+}
+
+func (s *Store) ShortLinkByID(id int64) (ShortLink, error) {
+	var l ShortLink
+	err := s.db.QueryRow(`SELECT id, code, target_url, host, clicks, created_at FROM short_links WHERE id = ?`, id).
+		Scan(&l.ID, &l.Code, &l.TargetURL, &l.Host, &l.Clicks, &l.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ShortLink{}, ErrNotFound
+	}
+	return l, err
+}
+
 func (s *Store) IncrementShortLinkClicks(id int64) error {
 	_, err := s.db.Exec(`UPDATE short_links SET clicks = clicks + 1 WHERE id = ?`, id)
 	return err

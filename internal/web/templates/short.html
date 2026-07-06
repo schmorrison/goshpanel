@@ -24,7 +24,15 @@
       <td class="wrap">
         {{if .Host}}<code>https://{{.Host}}/{{.Code}}</code>{{else}}<code>{{$.Data.BaseURL}}/s/{{.Code}}</code>{{end}}
       </td>
-      <td class="wrap">{{.TargetURL}}</td>
+      <td class="wrap">
+        <form class="form-row" method="post" action="/short/update">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <input name="target_url" type="url" value="{{.TargetURL}}" required class="grow">
+          <input name="host" placeholder="host" value="{{.Host}}" class="input-sm">
+          <button class="btn btn-sm">Save</button>
+        </form>
+      </td>
       <td>{{.Clicks}}</td>
       <td>
         <form method="post" action="/short/delete">

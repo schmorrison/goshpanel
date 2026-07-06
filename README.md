@@ -29,6 +29,8 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Orchestrator | `/orchestrator` | Live apply: Caddy, CoreDNS, maddy reload + systemd units |
 | Docker | `/docker` | Container/image management, logs, `docker run`, compose stacks |
 | Connectors | `/connectors` | Register Caddy-in-Docker, Postgres, MariaDB, remote Docker daemons |
+| Short links | `/short` | URL shortener — panel `/s/{code}` or custom host via Caddy |
+| Webhooks | `/webhooks` | Outbound audit events + inbound POST callbacks |
 | Functions | `/functions` | HTTP-triggered micro functions (bash scripts at `/fn/{name}`) |
 | Fleet | `/fleet` | Multi-instance telemetry, per-node performance charts, remote backup/docker/orchestrator control |
 | Performance | `/metrics` | Live gauges, SVG history charts (1h–7d), sampled metrics |
@@ -89,11 +91,24 @@ $env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
 
 Use **Connectors** (`/connectors`) to point GoshPanel at infrastructure running in Docker instead of on the host:
 
-1. **Caddy in Docker** — container name, config path (in-container and/or host volume), access log path. The **Caddy dashboard** (`/connectors/caddy`) lets you edit the Caddyfile, reload, and tail logs. Orchestrator **Apply Caddy** uses the default Caddy connector.
+1. **Caddy in Docker** — container name, config path (in-container and/or host volume), access log path, optional **Admin API URL/token** for reload. The **Caddy dashboard** (`/connectors/caddy`) lets you edit the Caddyfile, reload, and tail logs. Orchestrator **Apply Caddy** uses the default Caddy connector.
 2. **PostgreSQL / MySQL / MariaDB** — host, port, admin credentials (typically the published Docker port). **Databases** → *Provision database via connector* creates databases and optional app users.
 3. **Remote Docker** — set `DOCKER_HOST` for a remote daemon (TCP socket or SSH context URL).
 
 Without connectors, behavior is unchanged: local `GOSHPANEL_CADDY_CONFIG` and manual DSNs.
+
+**Edit connectors** — use the **Edit** button on `/connectors` to update paths, credentials, or Admin API settings. Leave password/token fields blank to keep existing values (encrypted when `GOSHPANEL_SECRETS_KEY` is set).
+
+## URL shortener
+
+- **Panel links:** create at `/short`, public redirect at `GET /s/{code}` (no auth).
+- **Custom host:** set a host on the short link; orchestrator **Apply Caddy** adds `redir` blocks (or enable `GOSHPANEL_AUTO_APPLY`).
+- Edit target URL inline on the short links table.
+
+## Webhooks
+
+- **Outbound:** subscribe at `/webhooks` to panel audit events (`*` or comma-separated action names). Payloads are JSON with optional HMAC via `X-GoshPanel-Signature`. Use **Test** to send a `test.ping` event.
+- **Inbound:** `POST /hooks/in/{token}` — actions: `log`, `apply_caddy`, `run_function`. Optional shared secret via `?secret=`, `Authorization: Bearer`, or HMAC signature.
 
 ## Configuration
 

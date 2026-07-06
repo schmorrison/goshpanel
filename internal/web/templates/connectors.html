@@ -21,6 +21,7 @@
       <td class="actions">
         <div class="action-group">
         {{if eq .Kind "caddy"}}<a class="btn btn-sm" href="/connectors/caddy?id={{.ID}}">Dashboard</a>{{end}}
+        <a class="btn btn-sm" href="/connectors/{{.ID}}/edit">Edit</a>
         <form method="post" action="/connectors/ping">
           <input type="hidden" name="csrf_token" value="{{$csrf}}">
           <input type="hidden" name="id" value="{{.ID}}">

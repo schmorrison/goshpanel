@@ -114,7 +114,7 @@ func (s *Server) audit(r *http.Request, action, detail string) {
 		s.log.Error("audit append failed", "err", err)
 	}
 	if s.hooks != nil {
-		s.hooks.Dispatch(r.Context(), action, map[string]any{
+		s.hooks.DispatchAsync(action, map[string]any{
 			"detail": detail,
 			"user":   user,
 		})

@@ -69,6 +69,42 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event string, data map[string
 	}
 }
 
+// DispatchAsync runs Dispatch in a background goroutine.
+func (d *Dispatcher) DispatchAsync(event string, data map[string]any) {
+	if d == nil {
+		return
+	}
+	go d.Dispatch(context.Background(), event, data)
+}
+
+// SendTest delivers a test.ping event to one subscription.
+func (d *Dispatcher) SendTest(ctx context.Context, subID int64) error {
+	if d == nil || d.store == nil {
+		return fmt.Errorf("webhooks disabled")
+	}
+	sub, err := d.store.WebhookSubscriptionByID(subID)
+	if err != nil {
+		return err
+	}
+	body, err := json.Marshal(Event{
+		Event:     "test.ping",
+		Timestamp: time.Now().UTC(),
+		Data:      map[string]any{"message": "GoshPanel webhook test"},
+	})
+	if err != nil {
+		return err
+	}
+	d.deliver(ctx, sub, body)
+	sub, err = d.store.WebhookSubscriptionByID(subID)
+	if err != nil {
+		return err
+	}
+	if sub.LastError != "" {
+		return fmt.Errorf("%s", sub.LastError)
+	}
+	return nil
+}
+
 func matchesEvent(spec, event string) bool {
 	spec = strings.TrimSpace(spec)
 	if spec == "" || spec == "*" {
@@ -111,4 +147,14 @@ func (d *Dispatcher) deliver(ctx context.Context, sub store.WebhookSubscription,
 		return
 	}
 	_ = d.store.TouchWebhookSubscription(sub.ID, resp.StatusCode, "")
+}
+
+// VerifySignature checks an HMAC-SHA256 hex digest against body bytes.
+func VerifySignature(secret string, body []byte, hexDigest string) bool {
+	if secret == "" || hexDigest == "" {
+		return false
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	return hmac.Equal([]byte(hex.EncodeToString(mac.Sum(nil))), []byte(hexDigest))
 }

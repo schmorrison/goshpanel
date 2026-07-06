@@ -24,6 +24,14 @@ type caddyConnectorData struct {
 	Connectors  []store.ServiceConnector
 }
 
+type connectorEditData struct {
+	Connector store.ServiceConnector
+	Caddy     connector.CaddyConfig
+	Docker    connector.DockerConfig
+	Database  connector.DatabaseConfig
+	HasSecret bool // caddy admin token or db password stored
+}
+
 func (s *Server) handleConnectorsPage(w http.ResponseWriter, r *http.Request) {
 	list, err := s.connect.List()
 	if err != nil {
@@ -160,6 +168,82 @@ func (s *Server) handleConnectorDefault(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	redirectFlash(w, r, "/connectors", c.Name+" is now the default "+c.Kind+" connector")
+}
+
+func (s *Server) handleConnectorEditPage(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		redirectError(w, r, "/connectors", err)
+		return
+	}
+	c, err := s.store.ServiceConnectorByID(id)
+	if err != nil {
+		redirectError(w, r, "/connectors", err)
+		return
+	}
+	data := connectorEditData{Connector: c}
+	switch c.Kind {
+	case "caddy":
+		cfg, _ := connector.ParseCaddyConfig(c.ConfigJSON)
+		data.Caddy = cfg
+		data.HasSecret = cfg.AdminToken != ""
+	case "docker":
+		cfg, _ := connector.ParseDockerConfig(c.ConfigJSON)
+		data.Docker = cfg
+	case "postgres", "mysql":
+		cfg, _ := connector.ParseDatabaseConfig(c.ConfigJSON)
+		data.Database = cfg
+		data.HasSecret = cfg.AdminPassword != "" || cfg.AdminPasswordEnc != ""
+	}
+	s.render(w, r, "connectors_edit.html", "Edit "+c.Name, "connectors", data)
+}
+
+func (s *Server) handleConnectorSave(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		redirectError(w, r, "/connectors", err)
+		return
+	}
+	c, err := s.store.ServiceConnectorByID(id)
+	if err != nil {
+		redirectError(w, r, "/connectors", err)
+		return
+	}
+	mode := r.FormValue("mode")
+	if mode != "" {
+		c.Mode = mode
+	}
+	c.Name = r.FormValue("name")
+	c.Enabled = r.FormValue("enabled") == "1" || r.FormValue("enabled") == "on"
+	c.IsDefault = r.FormValue("is_default") == "1" || r.FormValue("is_default") == "on"
+
+	updated := buildConnectorConfig(c.Kind, c.Mode, r)
+	merged, err := connector.MergeConfigJSON(c.Kind, c.ConfigJSON, updated)
+	if err != nil {
+		redirectError(w, r, "/connectors/"+strconv.FormatInt(id, 10)+"/edit", err)
+		return
+	}
+	if dbCfg, ok := merged.(connector.DatabaseConfig); ok {
+		var encErr error
+		dbCfg, encErr = s.connect.EncryptDatabaseConfig(dbCfg)
+		if encErr != nil {
+			redirectError(w, r, "/connectors/"+strconv.FormatInt(id, 10)+"/edit", encErr)
+			return
+		}
+		merged = dbCfg
+	}
+	raw, err := json.Marshal(merged)
+	if err != nil {
+		redirectError(w, r, "/connectors/"+strconv.FormatInt(id, 10)+"/edit", err)
+		return
+	}
+	c.ConfigJSON = string(raw)
+	if err := s.store.UpdateServiceConnector(c); err != nil {
+		redirectError(w, r, "/connectors/"+strconv.FormatInt(id, 10)+"/edit", err)
+		return
+	}
+	s.audit(r, "connectors.update", c.Name)
+	redirectFlash(w, r, "/connectors", "Connector updated")
 }
 
 func (s *Server) handleCaddyConnectorPage(w http.ResponseWriter, r *http.Request) {
