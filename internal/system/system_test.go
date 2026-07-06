@@ -1,6 +1,9 @@
 package system
 
-import "testing"
+import (
+	"runtime"
+	"testing"
+)
 
 func TestSnapshot(t *testing.T) {
 	st := Snapshot("/")
@@ -10,14 +13,27 @@ func TestSnapshot(t *testing.T) {
 	if st.NumCPU < 1 {
 		t.Errorf("NumCPU = %d", st.NumCPU)
 	}
-	if st.MemTotalKB == 0 {
-		t.Error("MemTotalKB = 0 (is /proc/meminfo readable?)")
-	}
-	if st.DiskTotalKB == 0 {
-		t.Error("DiskTotalKB = 0")
-	}
-	if st.Uptime <= 0 {
-		t.Error("Uptime not positive")
+	switch runtime.GOOS {
+	case "linux":
+		if st.MemTotalKB == 0 {
+			t.Error("MemTotalKB = 0 (is /proc/meminfo readable?)")
+		}
+		if st.DiskTotalKB == 0 {
+			t.Error("DiskTotalKB = 0")
+		}
+		if st.Uptime <= 0 {
+			t.Error("Uptime not positive")
+		}
+	case "windows":
+		if st.MemTotalKB == 0 {
+			t.Error("MemTotalKB = 0")
+		}
+		if st.DiskTotalKB == 0 {
+			t.Error("DiskTotalKB = 0")
+		}
+		if st.Uptime <= 0 {
+			t.Error("Uptime not positive")
+		}
 	}
 }
 
