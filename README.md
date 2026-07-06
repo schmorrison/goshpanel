@@ -50,6 +50,24 @@ GOSHPANEL_BOOTSTRAP_PASSWORD=yourpassword ./goshpanel
 
 Open http://localhost:4674 and sign in with `admin` / `yourpassword`.
 
+### Windows (local dev)
+
+Run from **PowerShell** or **cmd** so environment variables apply and output is visible:
+
+```powershell
+$env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
+go run ./cmd/goshpanel
+```
+
+Or with a built binary:
+
+```powershell
+$env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
+.\goshpanel.exe
+```
+
+Open http://127.0.0.1:4674 (sign in as `admin`). Logs are written to `data\goshpanel.log` if the console closes. The bootstrap password must be **at least 8 characters**.
+
 ## Configuration
 
 Everything is an environment variable:
