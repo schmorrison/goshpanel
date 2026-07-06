@@ -63,6 +63,9 @@ func TestBootstrapRequiresPassword(t *testing.T) {
 	if err := svc.Bootstrap("admin", ""); err == nil {
 		t.Error("empty bootstrap password accepted with no users")
 	}
+	if err := svc.Bootstrap("admin", "short"); err == nil {
+		t.Error("short bootstrap password accepted with no users")
+	}
 }
 
 func TestCreateUserValidation(t *testing.T) {

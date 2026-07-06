@@ -38,6 +38,9 @@ func (s *Service) Bootstrap(username, password string) error {
 	if password == "" {
 		return errors.New("no users exist: set GOSHPANEL_BOOTSTRAP_PASSWORD to create the first admin")
 	}
+	if len(password) < 8 {
+		return errors.New("GOSHPANEL_BOOTSTRAP_PASSWORD must be at least 8 characters")
+	}
 	if _, err := s.CreateUser(username, password, "admin"); err != nil {
 		return fmt.Errorf("bootstrap admin: %w", err)
 	}
