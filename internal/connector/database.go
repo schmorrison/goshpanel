@@ -11,7 +11,11 @@ func pingDB(ctx context.Context, driver, dsn string) error {
 }
 
 // ProvisionDatabase creates a database and optional user on a connector.
-func ProvisionDatabase(ctx context.Context, kind Kind, cfg DatabaseConfig, dbName, username, password, privileges string) error {
+func ProvisionDatabase(ctx context.Context, reg *Registry, kind Kind, rawConfig string, dbName, username, password, privileges string) error {
+	cfg, err := reg.ResolveDatabaseConfig(rawConfig)
+	if err != nil {
+		return err
+	}
 	driver, dsn, err := DatabaseDSN(kind, cfg)
 	if err != nil {
 		return err

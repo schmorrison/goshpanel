@@ -35,6 +35,7 @@ type CaddyContext struct {
 	Redirects     []store.RedirectRule
 	Aliases       []store.DomainAlias
 	WAFSites      []store.WAFSite
+	ShortLinks    []store.ShortLink
 }
 
 // RenderCaddyfile produces a Caddyfile for the given domains.
@@ -85,7 +86,32 @@ func RenderCaddyfileFull(ctx CaddyContext) string {
 			writeSiteBlock(&b, alias, dom.Root, dom.Upstream, wafFor[alias])
 		}
 	}
+	writeShortLinkBlocks(&b, ctx.ShortLinks)
 	return b.String()
+}
+
+func writeShortLinkBlocks(b *strings.Builder, links []store.ShortLink) {
+	byHost := map[string][]store.ShortLink{}
+	for _, l := range links {
+		host := strings.TrimSpace(l.Host)
+		if host == "" {
+			continue
+		}
+		byHost[strings.ToLower(host)] = append(byHost[strings.ToLower(host)], l)
+	}
+	hosts := make([]string, 0, len(byHost))
+	for h := range byHost {
+		hosts = append(hosts, h)
+	}
+	sort.Strings(hosts)
+	for _, host := range hosts {
+		fmt.Fprintf(b, "%s {\n", host)
+		for _, l := range byHost[host] {
+			code := strings.TrimPrefix(strings.TrimSpace(l.Code), "/")
+			fmt.Fprintf(b, "\tredir /%s %s 302\n", code, l.TargetURL)
+		}
+		b.WriteString("}\n\n")
+	}
 }
 
 func domainByName(domains []store.Domain, name string) (store.Domain, bool) {

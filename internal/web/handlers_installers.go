@@ -1,12 +1,15 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/schmorrison/goshpanel/internal/connector"
 	"github.com/schmorrison/goshpanel/internal/docker"
 	"github.com/schmorrison/goshpanel/internal/domains"
 	"github.com/schmorrison/goshpanel/internal/installers"
+	"github.com/schmorrison/goshpanel/internal/store"
 )
 
 type installersData struct {
@@ -57,6 +60,7 @@ func (s *Server) handleInstallerRun(w http.ResponseWriter, r *http.Request) {
 		if s.orch != nil {
 			_ = s.orch.ApplyCaddy(r.Context())
 		}
+		s.maybeRegisterInstallerDB(r, id, domain)
 		s.audit(r, "installers.run", id+" "+domain)
 		return
 	}
@@ -68,6 +72,40 @@ func (s *Server) handleInstallerRun(w http.ResponseWriter, r *http.Request) {
 	if s.orch != nil {
 		_ = s.orch.ApplyCaddy(r.Context())
 	}
+	s.maybeRegisterInstallerDB(r, id, domain)
 	s.audit(r, "installers.run", id+" "+domain)
 	redirectFlash(w, r, "/installers", fmt.Sprintf("Installed %s on %s (stack %s)", spec.Name, domain, stackName))
+}
+
+func (s *Server) maybeRegisterInstallerDB(r *http.Request, installerID, domain string) {
+	info, ok := installers.DatabaseConnInfo(installerID, domain)
+	if !ok {
+		return
+	}
+	cfg := connector.DatabaseConfig{
+		Host:            info.Host,
+		Port:            info.Port,
+		AdminUser:       info.AdminUser,
+		AdminPassword:   info.AdminPassword,
+		DefaultDatabase: info.Database,
+	}
+	enc, err := s.connect.EncryptDatabaseConfig(cfg)
+	if err != nil {
+		return
+	}
+	raw, err := json.Marshal(enc)
+	if err != nil {
+		return
+	}
+	_, err = s.store.CreateServiceConnector(store.ServiceConnector{
+		Name:       info.ConnectorName,
+		Kind:       info.Kind,
+		Mode:       string(connector.ModeLocal),
+		ConfigJSON: string(raw),
+		Enabled:    true,
+	})
+	if err != nil {
+		return
+	}
+	s.audit(r, "connectors.create", info.ConnectorName+" (installer)")
 }

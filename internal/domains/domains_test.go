@@ -50,3 +50,14 @@ func TestRenderCaddyfileWebmail(t *testing.T) {
 		t.Errorf("webmail block missing:\n%s", out)
 	}
 }
+
+func TestRenderCaddyfileShortLinks(t *testing.T) {
+	out := RenderCaddyfileFull(CaddyContext{
+		ShortLinks: []store.ShortLink{
+			{Host: "go.example.com", Code: "docs", TargetURL: "https://docs.example.com"},
+		},
+	})
+	if !strings.Contains(out, "go.example.com {") || !strings.Contains(out, "redir /docs https://docs.example.com 302") {
+		t.Errorf("short link block missing:\n%s", out)
+	}
+}

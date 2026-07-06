@@ -52,6 +52,15 @@ func (s *Server) handleConnectorCreate(w http.ResponseWriter, r *http.Request) {
 		mode = string(connector.ModeLocal)
 	}
 	cfg := buildConnectorConfig(kind, mode, r)
+	if dbCfg, ok := cfg.(connector.DatabaseConfig); ok {
+		var err error
+		dbCfg, err = s.connect.EncryptDatabaseConfig(dbCfg)
+		if err != nil {
+			redirectError(w, r, "/connectors", err)
+			return
+		}
+		cfg = dbCfg
+	}
 	raw, err := json.Marshal(cfg)
 	if err != nil {
 		redirectError(w, r, "/connectors", err)
@@ -82,6 +91,8 @@ func buildConnectorConfig(kind, mode string, r *http.Request) any {
 			ConfigPathHost:      r.FormValue("config_path_host"),
 			AccessLogPath:       r.FormValue("access_log_path"),
 			DockerHost:          r.FormValue("docker_host"),
+			AdminURL:            r.FormValue("admin_url"),
+			AdminToken:          r.FormValue("admin_token"),
 		}
 	case "docker":
 		return connector.DockerConfig{DockerHost: r.FormValue("docker_host")}
@@ -259,30 +270,28 @@ func (s *Server) handleDatabaseProvision(w http.ResponseWriter, r *http.Request)
 		redirectError(w, r, "/databases", err)
 		return
 	}
-	cfg, err := connector.ParseDatabaseConfig(c.ConfigJSON)
-	if err != nil {
-		redirectError(w, r, "/databases", err)
-		return
-	}
 	dbName := r.FormValue("database")
 	username := r.FormValue("username")
 	password := r.FormValue("password")
-	if err := connector.ProvisionDatabase(r.Context(), connector.Kind(c.Kind), cfg, dbName, username, password, r.FormValue("privileges")); err != nil {
+	if err := connector.ProvisionDatabase(r.Context(), s.connect, connector.Kind(c.Kind), c.ConfigJSON, dbName, username, password, r.FormValue("privileges")); err != nil {
 		redirectError(w, r, "/databases", err)
 		return
 	}
 	if username != "" && password != "" {
-		driver, dsn, err := connector.DatabaseDSN(connector.Kind(c.Kind), cfg)
+		cfg, err := s.connect.ResolveDatabaseConfig(c.ConfigJSON)
 		if err == nil {
-			appDSN := buildAppDSN(connector.Kind(c.Kind), cfg, username, password, dbName)
-			name := r.FormValue("conn_name")
-			if name == "" {
-				name = dbName
-			}
-			if err := dbmanager.Ping(r.Context(), driver, appDSN); err == nil {
-				_, _ = s.store.CreateDatabaseConn(name, driver, appDSN)
-			} else {
-				_, _ = s.store.CreateDatabaseConn(name, driver, dsn)
+			driver, dsn, err := connector.DatabaseDSN(connector.Kind(c.Kind), cfg)
+			if err == nil {
+				appDSN := buildAppDSN(connector.Kind(c.Kind), cfg, username, password, dbName)
+				name := r.FormValue("conn_name")
+				if name == "" {
+					name = dbName
+				}
+				if err := dbmanager.Ping(r.Context(), driver, appDSN); err == nil {
+					_, _ = s.store.CreateDatabaseConn(name, driver, appDSN)
+				} else {
+					_, _ = s.store.CreateDatabaseConn(name, driver, dsn)
+				}
 			}
 		}
 	}

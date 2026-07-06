@@ -32,6 +32,8 @@ func (s *Server) handleToolsPage(w http.ResponseWriter, r *http.Request) {
 		{"/api", "API & Explorer", "Bearer tokens and route catalog"},
 		{"/bandwidth", "Bandwidth", "Per-host traffic from access logs"},
 		{"/redirects", "Redirects & Aliases", "Caddy redirect and parked domains"},
+		{"/short", "URL Shortener", "Panel and Caddy short links"},
+		{"/webhooks", "Webhooks", "Outbound events and inbound callbacks"},
 		{"/firewall", "Firewall", "nftables rules export"},
 		{"/ssh", "SSH Keys", "authorized_keys management"},
 		{"/health-checks", "Health Checks", "HTTP uptime probes"},

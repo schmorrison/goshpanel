@@ -34,6 +34,8 @@
       <div class="nav-section">
         <span class="nav-label">Infrastructure</span>
         <a href="/connectors" {{if eq .Active "connectors"}}class="active"{{end}}>Connectors</a>
+        <a href="/short" {{if eq .Active "short"}}class="active"{{end}}>Short links</a>
+        <a href="/webhooks" {{if eq .Active "webhooks"}}class="active"{{end}}>Webhooks</a>
         <a href="/orchestrator" {{if eq .Active "orchestrator"}}class="active"{{end}}>Orchestrator</a>
         <a href="/docker" {{if eq .Active "docker"}}class="active"{{end}}>Docker</a>
         <a href="/functions" {{if eq .Active "functions"}}class="active"{{end}}>Functions</a>

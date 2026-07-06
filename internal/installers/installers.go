@@ -48,6 +48,8 @@ func ComposeYAML(id, siteName string) (string, error) {
 		return fmt.Sprintf(`services:
   db:
     image: mysql:8.0
+    ports:
+      - "13306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: goshpanel
       MYSQL_DATABASE: wordpress
@@ -156,7 +158,36 @@ volumes:
 	}
 }
 
-// StackName returns the docker stack name for a site.
+// InstallerDBInfo describes an auto-registered database connector after install.
+type InstallerDBInfo struct {
+	Kind          string
+	Host          string
+	Port          int
+	AdminUser     string
+	AdminPassword string
+	Database      string
+	ConnectorName string
+}
+
+// DatabaseConnInfo returns connection details for installers that ship a database.
+func DatabaseConnInfo(installerID, domain string) (InstallerDBInfo, bool) {
+	switch installerID {
+	case "wordpress":
+		slug := strings.ReplaceAll(strings.ToLower(domain), ".", "-")
+		return InstallerDBInfo{
+			Kind:          "mysql",
+			Host:          "127.0.0.1",
+			Port:          13306,
+			AdminUser:     "root",
+			AdminPassword: "goshpanel",
+			Database:      "wordpress",
+			ConnectorName: "wordpress-" + slug + "-mysql",
+		}, true
+	default:
+		return InstallerDBInfo{}, false
+	}
+}
+
 func StackName(installerID, domain string) string {
 	domain = strings.ReplaceAll(strings.ToLower(domain), ".", "-")
 	return installerID + "-" + domain

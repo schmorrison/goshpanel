@@ -3,6 +3,8 @@ package connector
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -106,6 +108,13 @@ func (c *CaddyClient) Write(ctx context.Context, content string) error {
 
 // Reload signals Caddy to pick up the config.
 func (c *CaddyClient) Reload(ctx context.Context) error {
+	if c.cfg.AdminURL != "" {
+		content, err := c.Read(ctx)
+		if err != nil {
+			return err
+		}
+		return c.reloadAdminAPI(ctx, content)
+	}
 	configPath := c.local.ConfigPath
 	if c.conn.Mode == string(ModeDocker) && c.cfg.Container != "" {
 		cli, err := c.docker.For(c.conn)
@@ -123,6 +132,28 @@ func (c *CaddyClient) Reload(ctx context.Context) error {
 		return nil
 	}
 	return domains.ApplyCaddyfile(ctx, configPath)
+}
+
+func (c *CaddyClient) reloadAdminAPI(ctx context.Context, content string) error {
+	url := strings.TrimRight(c.cfg.AdminURL, "/") + "/load"
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(content))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "text/caddyfile")
+	if c.cfg.AdminToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.cfg.AdminToken)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("caddy admin API: %w", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("caddy admin API %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return nil
 }
 
 // WriteAndReload writes content then reloads.

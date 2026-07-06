@@ -109,7 +109,14 @@ func currentSession(r *http.Request) store.Session {
 
 // audit records an action by the current user, logging failures.
 func (s *Server) audit(r *http.Request, action, detail string) {
-	if err := s.store.AppendAudit(currentUser(r).Username, action, detail); err != nil {
+	user := currentUser(r).Username
+	if err := s.store.AppendAudit(user, action, detail); err != nil {
 		s.log.Error("audit append failed", "err", err)
+	}
+	if s.hooks != nil {
+		s.hooks.Dispatch(r.Context(), action, map[string]any{
+			"detail": detail,
+			"user":   user,
+		})
 	}
 }

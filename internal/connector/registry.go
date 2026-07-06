@@ -36,6 +36,8 @@ type CaddyConfig struct {
 	ConfigPathHost      string `json:"config_path_host"`
 	AccessLogPath       string `json:"access_log_path"`
 	DockerHost          string `json:"docker_host"`
+	AdminURL            string `json:"admin_url"`
+	AdminToken          string `json:"admin_token"`
 }
 
 // DockerConfig is stored for kind=docker.
@@ -45,12 +47,13 @@ type DockerConfig struct {
 
 // DatabaseConfig is stored for kind=postgres or kind=mysql.
 type DatabaseConfig struct {
-	Host            string `json:"host"`
-	Port            int    `json:"port"`
-	AdminUser       string `json:"admin_user"`
-	AdminPassword   string `json:"admin_password"`
-	DefaultDatabase string `json:"default_database"`
-	SSLMode         string `json:"ssl_mode"`
+	Host              string `json:"host"`
+	Port              int    `json:"port"`
+	AdminUser         string `json:"admin_user"`
+	AdminPassword     string `json:"admin_password"`
+	AdminPasswordEnc  string `json:"admin_password_enc"`
+	DefaultDatabase   string `json:"default_database"`
+	SSLMode           string `json:"ssl_mode"`
 }
 
 // Registry resolves connectors and builds clients.
@@ -58,12 +61,22 @@ type Registry struct {
 	store  *store.Store
 	cfg    config.Config
 	docker *dockerFactory
+	vault  PasswordVault
+}
+
+// PasswordVault decrypts connector secrets.
+type PasswordVault interface {
+	Decrypt(encoded string) (string, error)
+	Encrypt(plain string) (string, error)
 }
 
 // NewRegistry creates a connector registry.
 func NewRegistry(st *store.Store, cfg config.Config) *Registry {
 	return &Registry{store: st, cfg: cfg, docker: &dockerFactory{}}
 }
+
+// SetVault enables encrypted connector passwords.
+func (r *Registry) SetVault(v PasswordVault) { r.vault = v }
 
 // List returns all connectors.
 func (r *Registry) List() ([]store.ServiceConnector, error) {
@@ -106,6 +119,7 @@ func (r *Registry) DockerService(c store.ServiceConnector) (*DockerCLI, error) {
 
 // DatabaseDSN builds driver + DSN for postgres/mysql connectors.
 func DatabaseDSN(kind Kind, cfg DatabaseConfig) (driver, dsn string, err error) {
+	pass := cfg.AdminPassword
 	switch kind {
 	case KindPostgres:
 		if cfg.Port == 0 {
@@ -120,13 +134,13 @@ func DatabaseDSN(kind Kind, cfg DatabaseConfig) (driver, dsn string, err error) 
 			ssl = "disable"
 		}
 		return "postgres", fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
-			cfg.AdminUser, cfg.AdminPassword, cfg.Host, cfg.Port, db, ssl), nil
+			cfg.AdminUser, pass, cfg.Host, cfg.Port, db, ssl), nil
 	case KindMySQL:
 		if cfg.Port == 0 {
 			cfg.Port = 3306
 		}
 		return "mysql", fmt.Sprintf("%s:%s@tcp(%s:%d)/",
-			cfg.AdminUser, cfg.AdminPassword, cfg.Host, cfg.Port), nil
+			cfg.AdminUser, pass, cfg.Host, cfg.Port), nil
 	default:
 		return "", "", fmt.Errorf("not a database connector kind %q", kind)
 	}
@@ -190,7 +204,7 @@ func (r *Registry) Ping(ctx context.Context, c store.ServiceConnector) error {
 		}
 		err = svc.Ping(ctx)
 	case KindPostgres, KindMySQL:
-		cfg, e := ParseDatabaseConfig(c.ConfigJSON)
+		cfg, e := r.ResolveDatabaseConfig(c.ConfigJSON)
 		if e != nil {
 			err = e
 			break
@@ -228,4 +242,32 @@ func (r *Registry) EffectiveCaddy() (store.ServiceConnector, CaddyLocalPaths, er
 		Mode:  string(ModeLocal),
 		Enabled: true,
 	}, paths, nil
+}
+
+// ResolveDatabaseConfig returns config with decrypted password when vault is set.
+func (r *Registry) ResolveDatabaseConfig(raw string) (DatabaseConfig, error) {
+	cfg, err := ParseDatabaseConfig(raw)
+	if err != nil {
+		return DatabaseConfig{}, err
+	}
+	if cfg.AdminPassword == "" && cfg.AdminPasswordEnc != "" && r.vault != nil {
+		cfg.AdminPassword, err = r.vault.Decrypt(cfg.AdminPasswordEnc)
+		if err != nil {
+			return DatabaseConfig{}, err
+		}
+	}
+	return cfg, nil
+}
+
+// EncryptDatabaseConfig stores password encrypted when vault is available.
+func (r *Registry) EncryptDatabaseConfig(cfg DatabaseConfig) (DatabaseConfig, error) {
+	if r.vault != nil && cfg.AdminPassword != "" {
+		enc, err := r.vault.Encrypt(cfg.AdminPassword)
+		if err != nil {
+			return DatabaseConfig{}, err
+		}
+		cfg.AdminPasswordEnc = enc
+		cfg.AdminPassword = ""
+	}
+	return cfg, nil
 }

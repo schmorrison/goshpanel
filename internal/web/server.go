@@ -29,6 +29,7 @@ import (
 	"github.com/schmorrison/goshpanel/internal/security"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/system"
+	"github.com/schmorrison/goshpanel/internal/webhooks"
 )
 
 //go:embed templates/*.html
@@ -55,6 +56,7 @@ type Server struct {
 	fleet   *fleet.Controller
 	collector *fleet.Collector
 	vault   *secrets.Vault
+	hooks   *webhooks.Dispatcher
 
 	tmpl *template.Template
 	mux  *http.ServeMux
@@ -161,8 +163,10 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 	if cfg.SecretsKey != "" {
 		if v, err := secrets.NewVault(cfg.SecretsKey); err == nil {
 			s.vault = v
+			s.connect.SetVault(v)
 		}
 	}
+	s.hooks = webhooks.NewDispatcher(st, logger)
 	s.routes()
 	return s, nil
 }
@@ -314,6 +318,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /connectors/caddy/save", s.requireAuth(s.handleCaddyConnectorSave))
 	s.mux.HandleFunc("POST /connectors/caddy/reload", s.requireAuth(s.handleCaddyConnectorReload))
 	s.mux.HandleFunc("POST /databases/provision", s.requireAuth(s.handleDatabaseProvision))
+
+	// URL shortener & webhooks
+	s.mux.HandleFunc("GET /short", s.requireAuth(s.handleShortLinksPage))
+	s.mux.HandleFunc("POST /short/create", s.requireAuth(s.handleShortLinkCreate))
+	s.mux.HandleFunc("POST /short/delete", s.requireAuth(s.handleShortLinkDelete))
+	s.mux.HandleFunc("GET /s/{code}", s.handleShortRedirect)
+	s.mux.HandleFunc("GET /webhooks", s.requireAuth(s.handleWebhooksPage))
+	s.mux.HandleFunc("POST /webhooks/outbound/create", s.requireAuth(s.handleWebhookOutboundCreate))
+	s.mux.HandleFunc("POST /webhooks/outbound/delete", s.requireAuth(s.handleWebhookOutboundDelete))
+	s.mux.HandleFunc("POST /webhooks/inbound/create", s.requireAuth(s.handleWebhookInboundCreate))
+	s.mux.HandleFunc("POST /webhooks/inbound/delete", s.requireAuth(s.handleWebhookInboundDelete))
+	s.mux.HandleFunc("POST /hooks/in/{token}", s.handleInboundWebhook)
 
 	// Tools hub & helpers
 	s.mux.HandleFunc("GET /tools", s.requireAuth(s.handleToolsPage))

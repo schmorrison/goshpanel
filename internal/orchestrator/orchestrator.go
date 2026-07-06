@@ -289,6 +289,7 @@ func (s *Service) caddyContext(domainsList []store.Domain) domains.CaddyContext 
 	redirects, _ := s.store.RedirectRules()
 	aliases, _ := s.store.DomainAliases()
 	waf, _ := s.store.WAFSites()
+	shortLinks, _ := s.store.ShortLinks()
 	return domains.CaddyContext{
 		Domains:       domainsList,
 		AccessLogPath: s.paths.CaddyAccessLog,
@@ -296,5 +297,6 @@ func (s *Service) caddyContext(domainsList []store.Domain) domains.CaddyContext 
 		Redirects:     redirects,
 		Aliases:       aliases,
 		WAFSites:      waf,
+		ShortLinks:    shortLinks,
 	}
 }

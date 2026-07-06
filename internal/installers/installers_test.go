@@ -33,3 +33,14 @@ func TestUpstreamHostPort(t *testing.T) {
 		t.Errorf("upstream = %s", UpstreamHostPort(spec))
 	}
 }
+
+func TestDatabaseConnInfo(t *testing.T) {
+	info, ok := DatabaseConnInfo("wordpress", "blog.example.com")
+	if !ok || info.Port != 13306 || info.Kind != "mysql" {
+		t.Fatalf("DatabaseConnInfo = %+v, ok=%v", info, ok)
+	}
+	yaml, err := ComposeYAML("wordpress", "blog.example.com")
+	if err != nil || !strings.Contains(yaml, "13306:3306") {
+		t.Fatalf("wordpress compose should publish mysql: %v\n%s", err, yaml)
+	}
+}
