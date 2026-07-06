@@ -17,7 +17,7 @@
           <form class="form-row" method="post" action="/security/users/files-subdir">
             <input type="hidden" name="csrf_token" value="{{$csrf}}">
             <input type="hidden" name="id" value="{{.ID}}">
-            <input type="text" name="files_subdir" value="{{if .FilesSubdir}}{{.FilesSubdir}}{{else}}{{.Username}}{{end}}" placeholder="subdir under files root" style="max-width:12rem">
+            <input type="text" name="files_subdir" value="{{if .FilesSubdir}}{{.FilesSubdir}}{{else}}{{.Username}}{{end}}" placeholder="subdir under files root" class="input-sm">
             <button type="submit" class="btn btn-sm">Save</button>
           </form>
           {{else}}

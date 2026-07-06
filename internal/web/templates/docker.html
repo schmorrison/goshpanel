@@ -41,11 +41,13 @@
       <td>{{.Status}}</td>
       <td class="wrap">{{.Ports}}</td>
       <td class="actions">
+        <div class="action-group">
         <a class="btn btn-sm" href="/docker?logs={{.ID}}">Logs</a>
         <form method="post" action="/docker/start"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Start</button></form>
         <form method="post" action="/docker/stop"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Stop</button></form>
         <form method="post" action="/docker/restart"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Restart</button></form>
         <form method="post" action="/docker/remove"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-danger">Remove</button></form>
+        </div>
       </td>
     </tr>
     {{else}}
@@ -86,9 +88,11 @@
       <td><code>{{.Name}}</code></td>
       <td>{{timefmt .CreatedAt}}</td>
       <td class="actions">
+        <div class="action-group">
         <form method="post" action="/docker/stacks/up"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-primary">Up</button></form>
         <form method="post" action="/docker/stacks/down"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm">Down</button></form>
         <form method="post" action="/docker/stacks/delete"><input type="hidden" name="csrf_token" value="{{$csrf}}"><input type="hidden" name="id" value="{{.ID}}"><button type="submit" class="btn btn-sm btn-danger">Delete</button></form>
+        </div>
       </td>
     </tr>
     {{else}}

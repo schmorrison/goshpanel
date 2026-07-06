@@ -24,11 +24,11 @@
     <h2>{{.Domain.Name}}</h2>
     <div class="actions">
       <a class="btn btn-sm" href="/domains/{{.Domain.ID}}/zone">Zone file</a>
-      <form method="post" action="/domains/{{.Domain.ID}}/deliverability" style="display:inline">
+      <form method="post" action="/domains/{{.Domain.ID}}/deliverability">
         <input type="hidden" name="csrf_token" value="{{$csrf}}">
         <button type="submit" class="btn btn-sm">Add SPF/DMARC/DKIM</button>
       </form>
-      <form method="post" action="/domains/{{.Domain.ID}}/dkim" style="display:inline">
+      <form method="post" action="/domains/{{.Domain.ID}}/dkim">
         <input type="hidden" name="csrf_token" value="{{$csrf}}">
         <input type="hidden" name="selector" value="goshpanel">
         <button type="submit" class="btn btn-sm">Generate DKIM key</button>
