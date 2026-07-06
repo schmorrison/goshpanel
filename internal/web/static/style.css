@@ -143,7 +143,12 @@ a:hover { color: #7df9ff; text-shadow: 0 0 12px rgba(0, 229, 255, 0.35); text-de
 
 .brand-lg { font-size: 1.85rem; margin-bottom: .35rem; }
 
-.nav-section { margin-bottom: .65rem; }
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: .65rem;
+}
 
 .nav-label {
   display: block;
@@ -158,6 +163,8 @@ a:hover { color: #7df9ff; text-shadow: 0 0 12px rgba(0, 229, 255, 0.35); text-de
 .sidebar nav { display: flex; flex-direction: column; gap: 2px; flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 
 .sidebar nav a {
+  display: block;
+  width: 100%;
   color: var(--sidebar-ink);
   padding: .48rem .75rem;
   border-radius: var(--radius-sm);
