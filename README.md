@@ -85,6 +85,16 @@ $env:GOSHPANEL_BOOTSTRAP_PASSWORD="changeme12"
 .\goshpanel.exe
 ```
 
+## Service connectors
+
+Use **Connectors** (`/connectors`) to point GoshPanel at infrastructure running in Docker instead of on the host:
+
+1. **Caddy in Docker** — container name, config path (in-container and/or host volume), access log path. The **Caddy dashboard** (`/connectors/caddy`) lets you edit the Caddyfile, reload, and tail logs. Orchestrator **Apply Caddy** uses the default Caddy connector.
+2. **PostgreSQL / MySQL / MariaDB** — host, port, admin credentials (typically the published Docker port). **Databases** → *Provision database via connector* creates databases and optional app users.
+3. **Remote Docker** — set `DOCKER_HOST` for a remote daemon (TCP socket or SSH context URL).
+
+Without connectors, behavior is unchanged: local `GOSHPANEL_CADDY_CONFIG` and manual DSNs.
+
 ## Configuration
 
 Everything is an environment variable:
