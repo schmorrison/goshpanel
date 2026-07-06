@@ -1,0 +1,86 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<p class="muted">Outbound webhooks fire on panel audit events. Inbound webhooks accept external POST callbacks.</p>
+
+<div class="grid grid-2">
+<div class="card">
+  <h2>Outbound subscriptions</h2>
+  <form method="post" action="/webhooks/outbound/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Name <input name="name" required></label>
+    <label>URL <input name="url" type="url" placeholder="https://hooks.example.com/goshpanel" required></label>
+    <label>Secret <input name="secret" placeholder="auto-generated if empty"></label>
+    <label>Events <input name="events" value="*" placeholder="* or audit.action,domains.create"></label>
+    <button class="btn btn-primary">Add subscription</button>
+  </form>
+  <table class="list">
+    <thead><tr><th>Name</th><th>URL</th><th>Last delivery</th><th></th></tr></thead>
+    <tbody>
+    {{range .Outbound}}
+    <tr>
+      <td>{{.Name}}</td>
+      <td class="wrap"><code>{{.URL}}</code></td>
+      <td>
+        {{if .LastAt}}
+          {{if .LastError}}<span class="badge-warn">{{.LastError}}</span>{{else}}<span class="badge-ok">HTTP {{.LastStatus}}</span>{{end}}
+          {{timefmtPtr .LastAt}}
+        {{else}}<span class="muted">never</span>{{end}}
+      </td>
+      <td>
+        <form method="post" action="/webhooks/outbound/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No outbound webhooks.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Inbound hooks</h2>
+  <form method="post" action="/webhooks/inbound/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Name <input name="name" required></label>
+    <label>Token <input name="token" placeholder="auto-generated if empty"></label>
+    <label>Action
+      <select name="action">
+        <option value="log">Log payload</option>
+        <option value="apply_caddy">Apply Caddy config</option>
+        <option value="run_function">Run micro-function</option>
+      </select>
+    </label>
+    <label>Function name <input name="function_name" placeholder="for run_function action"></label>
+    <label>Function token <input name="function_token" placeholder="optional invoke token"></label>
+    <button class="btn btn-primary">Add inbound hook</button>
+  </form>
+  <table class="list">
+    <thead><tr><th>Name</th><th>URL</th><th>Action</th><th></th></tr></thead>
+    <tbody>
+    {{range .Inbound}}
+    <tr>
+      <td>{{.Name}}</td>
+      <td class="wrap"><code>POST {{$.Data.BaseURL}}/hooks/in/{{.Token}}</code></td>
+      <td><code>{{.Action}}</code></td>
+      <td>
+        <form method="post" action="/webhooks/inbound/delete">
+          <input type="hidden" name="csrf_token" value="{{$csrf}}">
+          <input type="hidden" name="id" value="{{.ID}}">
+          <button class="btn btn-sm btn-danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No inbound hooks.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+</div>
+{{end}}
+{{template "footer" .}}

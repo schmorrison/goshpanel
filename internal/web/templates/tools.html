@@ -1,0 +1,19 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form class="form-row" method="get" action="/tools">
+    <input type="text" name="q" value="{{.Query}}" placeholder="Jump to tool…" class="grow">
+    <button type="submit" class="btn btn-primary">Search</button>
+  </form>
+</div>
+<div class="grid grid-3">
+{{range .Links}}
+<a class="card tool-card" href="{{.Href}}">
+  <h2>{{.Label}}</h2>
+  <p class="muted">{{.Desc}}</p>
+</a>
+{{end}}
+</div>
+{{end}}
+{{template "footer" .}}

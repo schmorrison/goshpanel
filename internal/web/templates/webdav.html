@@ -1,0 +1,9 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="card">
+  {{if .Enabled}}<p>WebDAV is <span class="badge-ok">enabled</span> on <code>{{.Addr}}</code></p>
+  <p class="muted">Mount <code>{{.Root}}</code> in your OS file manager at <code>dav://host{{.Addr}}/</code></p>
+  {{else}}<p class="muted">Enable with <code>GOSHPANEL_WEBDAV=true</code> and <code>GOSHPANEL_WEBDAV_ADDR=:8080</code></p>{{end}}
+</div>
+{{end}}
+{{template "footer" .}}

@@ -1,0 +1,31 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="card">
+  <h2>Log sources</h2>
+  {{if .Sources}}
+  <table class="list">
+    <thead><tr><th>Path</th><th>Size</th><th class="actions-col"></th></tr></thead>
+    <tbody>
+    {{range .Sources}}
+    <tr>
+      <td><code>{{.Path}}</code></td>
+      <td>{{if .Exists}}{{humanBytes .Size}}{{else}}<span class="muted">missing</span>{{end}}</td>
+      <td class="actions">{{if .Exists}}<a class="btn btn-sm" href="/logs?path={{.Path}}">View tail</a>{{end}}</td>
+    </tr>
+    {{end}}
+    </tbody>
+  </table>
+  {{else}}
+  <p class="muted">No log sources configured. Set <code>GOSHPANEL_LOG_SOURCES</code> to a comma-separated list of file paths, e.g. <code>/var/log/syslog,/var/log/caddy/access.log</code>.</p>
+  {{end}}
+</div>
+
+{{if .Selected}}
+<div class="card">
+  <h2>Tail of <code>{{.Selected}}</code> (last {{.Count}} lines)</h2>
+  <pre class="terminal-output">{{range .Lines}}{{.}}
+{{end}}</pre>
+</div>
+{{end}}
+{{end}}
+{{template "footer" .}}

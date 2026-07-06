@@ -1,0 +1,48 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="grid grid-2">
+<div class="card">
+  <h2>Request builder</h2>
+  <form method="post" action="/http/requests/run">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Method <select name="method"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></label>
+    <label>URL <input type="url" name="url" placeholder="https://api.example.com/v1/users" required></label>
+    <label>Headers <textarea name="headers" rows="4" placeholder="Authorization: Bearer token&#10;Content-Type: application/json"></textarea></label>
+    <label>Body <textarea name="body" rows="6" class="mono"></textarea></label>
+    <button type="submit" class="btn btn-primary">Send</button>
+  </form>
+  {{if .Result}}<pre class="code-block">{{.Result}}</pre>{{end}}
+</div>
+<div class="card">
+  <h2>Collections</h2>
+  <form class="form-row" method="post" action="/http/collections/create">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="text" name="name" placeholder="My API" required>
+    <button type="submit" class="btn">New collection</button>
+  </form>
+  <ul class="list">
+  {{range .Collections}}
+  <li><a href="/http?collection={{.ID}}">{{.Name}}</a></li>
+  {{end}}
+  </ul>
+  {{if .Collection}}
+  <h3>Saved requests</h3>
+  <form method="post" action="/http/requests/save">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="collection_id" value="{{.Collection}}">
+    <label>Name <input type="text" name="name" required></label>
+    <label>Method <input type="text" name="method" value="GET"></label>
+    <label>URL <input type="url" name="url" required></label>
+    <label>Headers <textarea name="headers" rows="3"></textarea></label>
+    <label>Body <textarea name="body" rows="3"></textarea></label>
+    <button type="submit" class="btn">Save to collection</button>
+  </form>
+  <table class="list"><tbody>
+  {{range .Requests}}<tr><td><code>{{.Method}}</code></td><td>{{.Name}}</td><td class="wrap">{{.URL}}</td></tr>{{end}}
+  </tbody></table>
+  {{end}}
+</div>
+</div>
+{{end}}
+{{template "footer" .}}
