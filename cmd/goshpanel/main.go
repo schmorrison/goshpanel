@@ -44,11 +44,13 @@ func main() {
 		fatal(logger, "open store", err)
 	}
 	defer st.Close()
+	logger.Info("database ready")
 
 	srv, err := web.New(cfg, logger, st)
 	if err != nil {
 		fatal(logger, "start server", err)
 	}
+	logger.Info("modules initialized")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -91,7 +93,7 @@ func main() {
 		}()
 	}
 
-	scheduler.Start(ctx, cfg, st, srv.Backups(), srv.Functions(), logger)
+	go scheduler.Start(ctx, cfg, st, srv.Backups(), srv.Functions(), logger)
 
 	go func() {
 		for range time.Tick(time.Hour) {
