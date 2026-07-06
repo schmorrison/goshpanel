@@ -69,6 +69,13 @@ type Config struct {
 	SFTPEnabled    bool
 	SFTPAddr       string
 	SFTPHostKeyPath string
+
+	// SecretsKey encrypts env secrets at rest (32+ char recommended).
+	SecretsKey string
+
+	// WebDAVEnabled serves the files sandbox over WebDAV.
+	WebDAVEnabled bool
+	WebDAVAddr    string
 }
 
 // Load reads configuration from the given environment lookup function.
@@ -145,6 +152,9 @@ func Load(lookup func(string) (string, bool)) (Config, error) {
 	cfg.SFTPEnabled = parseBool(get("SFTP", "false"), "SFTP", &err)
 	cfg.SFTPAddr = get("SFTP_ADDR", ":2222")
 	cfg.SFTPHostKeyPath = get("SFTP_HOST_KEY", filepath.Join(cfg.DataDir, "sftp_host_key"))
+	cfg.SecretsKey = get("SECRETS_KEY", "")
+	cfg.WebDAVEnabled = parseBool(get("WEBDAV", "false"), "WEBDAV", &err)
+	cfg.WebDAVAddr = get("WEBDAV_ADDR", ":8080")
 
 	if err != nil {
 		return Config{}, err

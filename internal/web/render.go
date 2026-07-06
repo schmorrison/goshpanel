@@ -10,25 +10,34 @@ import (
 
 // pageData is the payload every template receives.
 type pageData struct {
-	Title  string
-	Active string // nav highlight key
-	User   store.User
-	CSRF   string
-	Flash  string
-	Error  string
-	Data   any
+	Title        string
+	Active       string // nav highlight key
+	User         store.User
+	CSRF         string
+	Flash        string
+	Error        string
+	Theme        string
+	Accent       string
+	IncidentMode bool
+	Data         any
 }
 
 // render executes the named template with a fully populated pageData.
 func (s *Server) render(w http.ResponseWriter, r *http.Request, name, title, active string, data any) {
+	theme, _ := s.store.UITheme()
+	accent, _ := s.store.UIAccent()
+	incident, _ := s.store.IncidentMode()
 	pd := pageData{
-		Title:  title,
-		Active: active,
-		User:   currentUser(r),
-		CSRF:   currentSession(r).CSRFToken,
-		Flash:  r.URL.Query().Get("flash"),
-		Error:  r.URL.Query().Get("error"),
-		Data:   data,
+		Title:        title,
+		Active:       active,
+		User:         currentUser(r),
+		CSRF:         currentSession(r).CSRFToken,
+		Flash:        r.URL.Query().Get("flash"),
+		Error:        r.URL.Query().Get("error"),
+		Theme:        theme,
+		Accent:       accent,
+		IncidentMode: incident,
+		Data:         data,
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := s.tmpl.ExecuteTemplate(w, name, pd); err != nil {

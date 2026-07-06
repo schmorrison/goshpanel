@@ -49,6 +49,7 @@ func newTestServer(t *testing.T) http.Handler {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
+	_ = st.SetOnboardingDone(true)
 	srv, err := New(cfg, slog.New(slog.NewTextHandler(io.Discard, nil)), st)
 	if err != nil {
 		t.Fatalf("New: %v", err)

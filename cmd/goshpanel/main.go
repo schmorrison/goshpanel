@@ -16,8 +16,10 @@ import (
 	"github.com/schmorrison/goshpanel/internal/files"
 	"github.com/schmorrison/goshpanel/internal/fleet"
 	"github.com/schmorrison/goshpanel/internal/sftpserver"
+	"github.com/schmorrison/goshpanel/internal/scheduler"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/web"
+	"github.com/schmorrison/goshpanel/internal/webdavsrv"
 )
 
 func main() {
@@ -71,6 +73,22 @@ func main() {
 			}
 		}()
 	}
+
+	if cfg.WebDAVEnabled {
+		fileSvc, err := files.New(cfg.FilesRoot)
+		if err != nil {
+			logger.Error("webdav files root", "err", err)
+			os.Exit(1)
+		}
+		wd := webdavsrv.New(cfg.WebDAVAddr, fileSvc, logger)
+		go func() {
+			if err := wd.Run(ctx); err != nil {
+				logger.Error("webdav stopped", "err", err)
+			}
+		}()
+	}
+
+	scheduler.Start(ctx, cfg, st, srv.Backups(), srv.Functions(), logger)
 
 	go func() {
 		for range time.Tick(time.Hour) {

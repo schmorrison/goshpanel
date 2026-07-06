@@ -1,0 +1,14 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="card">
+  <form method="post" action="/theme/save">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <label>Theme <select name="theme"><option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option><option value="light" {{if eq .Theme "light"}}selected{{end}}>Light</option></select></label>
+    <label>Accent color <input type="color" name="accent" value="{{if .Accent}}{{.Accent}}{{else}}#00e5ff{{end}}"></label>
+    <button class="btn btn-primary">Save</button>
+  </form>
+  {{if .Release.Behind}}<p class="muted">Update available: <a href="{{.Release.URL}}">{{.Release.Tag}}</a> (running {{.Release.Current}})</p>{{else}}<p class="muted">Running {{.Release.Current}}</p>{{end}}
+</div>
+{{end}}
+{{template "footer" .}}

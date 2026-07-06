@@ -1,0 +1,13 @@
+{{template "header" .}}
+{{with .Data}}
+{{$sel := .Selected}}
+<div class="card">
+  <form class="form-row" method="get" action="/fleet/logs">
+    <select name="node">{{range .Nodes}}<option value="{{.ID}}" {{if eq $sel .ID}}selected{{end}}>{{.Name}}</option>{{end}}</select>
+    <button class="btn">View logs</button>
+  </form>
+  {{range .Logs}}<pre class="code-block">[{{timefmt .RecordedAt}}] {{.Source}}
+{{.Content}}</pre>{{else}}<p class="muted">No log chunks ingested yet. Workers POST to <code>/api/v1/fleet/logs</code>.</p>{{end}}
+</div>
+{{end}}
+{{template "footer" .}}

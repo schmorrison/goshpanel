@@ -78,10 +78,14 @@ func (s *Server) handleCaddyfile(w http.ResponseWriter, r *http.Request) {
 		redirectError(w, r, "/domains", err)
 		return
 	}
+	redirects, _ := s.store.RedirectRules()
+	aliases, _ := s.store.DomainAliases()
+	wafSites, _ := s.store.WAFSites()
 	ws, _ := s.store.WebmailSettings()
+	ctx := domains.CaddyContext{Domains: list, AccessLogPath: s.cfg.CaddyAccessLog, Webmail: ws, Redirects: redirects, Aliases: aliases, WAFSites: wafSites}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("Content-Disposition", `attachment; filename="Caddyfile"`)
-	w.Write([]byte(domains.RenderCaddyfile(list, s.cfg.CaddyAccessLog, ws)))
+	w.Write([]byte(domains.RenderCaddyfileFull(ctx)))
 }
 
 func (s *Server) handleZoneFile(w http.ResponseWriter, r *http.Request) {

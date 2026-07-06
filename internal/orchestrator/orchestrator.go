@@ -65,7 +65,7 @@ func (s *Service) ApplyCaddy(ctx context.Context) Result {
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
 	}
-	if err := domains.WriteCaddyfile(domainsList, s.paths.CaddyConfig, s.paths.CaddyAccessLog, s.webmailSettings()); err != nil {
+	if err := domains.WriteCaddyfileFull(s.caddyContext(domainsList), s.paths.CaddyConfig); err != nil {
 		res.Message = err.Error()
 		s.record("caddy", res.ConfigPath, res.Message)
 		return res
@@ -257,4 +257,18 @@ func (s *Service) webmailSettings() store.WebmailSettings {
 		return store.WebmailSettings{}
 	}
 	return ws
+}
+
+func (s *Service) caddyContext(domainsList []store.Domain) domains.CaddyContext {
+	redirects, _ := s.store.RedirectRules()
+	aliases, _ := s.store.DomainAliases()
+	waf, _ := s.store.WAFSites()
+	return domains.CaddyContext{
+		Domains:       domainsList,
+		AccessLogPath: s.paths.CaddyAccessLog,
+		Webmail:       s.webmailSettings(),
+		Redirects:     redirects,
+		Aliases:       aliases,
+		WAFSites:      waf,
+	}
 }

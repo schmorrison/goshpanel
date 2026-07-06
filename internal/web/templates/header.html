@@ -8,14 +8,15 @@
 <title>{{.Title}} · GoshPanel</title>
 <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
-<div class="shell">
+<body{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Accent}} style="--accent: {{.Accent}}; --accent-dim: {{.Accent}}"{{end}}>
+<div class="shell{{if .IncidentMode}} incident-mode{{end}}">
   <aside class="sidebar">
     <div class="brand">Gosh<span>Panel</span></div>
     <nav>
       <div class="nav-section">
         <span class="nav-label">Core</span>
         <a href="/" {{if eq .Active "dashboard"}}class="active"{{end}}>Dashboard</a>
+        <a href="/mission" {{if eq .Active "mission"}}class="active"{{end}}>Mission Control</a>
         <a href="/files" {{if eq .Active "files"}}class="active"{{end}}>Files</a>
         <a href="/domains" {{if eq .Active "domains"}}class="active"{{end}}>Domains &amp; DNS</a>
         <a href="/databases" {{if eq .Active "databases"}}class="active"{{end}}>Databases</a>
@@ -44,6 +45,14 @@
         <a href="/sftp" {{if eq .Active "sftp"}}class="active"{{end}}>SFTP</a>
         <a href="/ssl" {{if eq .Active "ssl"}}class="active"{{end}}>SSL / TLS</a>
         <a href="/security" {{if eq .Active "security"}}class="active"{{end}}>Security</a>
+      </div>
+      <div class="nav-section">
+        <span class="nav-label">Tools</span>
+        <a href="/tools" {{if eq .Active "tools"}}class="active"{{end}}>Tools Hub</a>
+        <a href="/http" {{if eq .Active "http"}}class="active"{{end}}>HTTP Client</a>
+        <a href="/api" {{if eq .Active "api"}}class="active"{{end}}>API</a>
+        <a href="/bandwidth" {{if eq .Active "bandwidth"}}class="active"{{end}}>Bandwidth</a>
+        <a href="/theme" {{if eq .Active "theme"}}class="active"{{end}}>Appearance</a>
       </div>
     </nav>
     <div class="sidebar-footer">

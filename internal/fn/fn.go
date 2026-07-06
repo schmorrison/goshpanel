@@ -158,6 +158,15 @@ func (s *Service) Invoke(ctx context.Context, name, token string) (InvokeResult,
 	return res, nil
 }
 
+// InvokeByID runs a function using its stored token (internal scheduler use).
+func (s *Service) InvokeByID(ctx context.Context, id int64) (InvokeResult, error) {
+	f, err := s.store.MicroFunctionByID(id)
+	if err != nil {
+		return InvokeResult{}, err
+	}
+	return s.Invoke(ctx, f.Name, f.Token)
+}
+
 // InvokeURL returns the public HTTP URL for a function.
 func InvokeURL(baseURL string, f store.MicroFunction) string {
 	return strings.TrimSuffix(baseURL, "/") + "/fn/" + f.Name + "?token=" + f.Token

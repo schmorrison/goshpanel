@@ -34,6 +34,10 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the full cPanel feature-parity matr
 | Analytics | `/analytics` | Caddy JSON access log stats, top paths, hourly chart |
 | SFTP | `/sftp` | Sandboxed SFTP server info (`GOSHPANEL_SFTP=true`) |
 | SSL / TLS | `/ssl` | PEM certificate scanner with expiry status |
+| Mission Control | `/mission` | Fleet map, incident mode, rolling deploy, alerts |
+| Tools Hub | `/tools` | Jump-off for HTTP client, API, bandwidth, firewall, etc. |
+| HTTP Client | `/http` | Postman-style request builder with saved collections |
+| API | `/api` | Bearer tokens + JSON REST endpoints + route explorer |
 
 ## Quick start
 
@@ -83,6 +87,18 @@ Everything is an environment variable:
 | `GOSHPANEL_SFTP_ADDR` | `:2222` | SFTP listen address |
 | `GOSHPANEL_SFTP_HOST_KEY` | `data/sftp_host_key` | SSH host key (auto-generated) |
 | `GOSHPANEL_SSL_CERT_DIR` | `data/certs` | Directory scanned for PEM certificates |
+| `GOSHPANEL_SECRETS_KEY` | — | Master key for encrypted env secrets (`/secrets`) |
+| `GOSHPANEL_WEBDAV` | `false` | Enable WebDAV on `GOSHPANEL_WEBDAV_ADDR` |
+| `GOSHPANEL_WEBDAV_ADDR` | `:8080` | WebDAV listen address |
+
+### Cloud environment install
+
+This repo is a **single Go module** with no `frontend/` directory. Use:
+
+```bash
+go mod download
+go build -o goshpanel ./cmd/goshpanel
+```
 
 ### Fleet setup
 

@@ -28,6 +28,11 @@
         <input type="hidden" name="csrf_token" value="{{$csrf}}">
         <button type="submit" class="btn btn-sm">Add SPF/DMARC/DKIM</button>
       </form>
+      <form method="post" action="/domains/{{.Domain.ID}}/dkim" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="selector" value="goshpanel">
+        <button type="submit" class="btn btn-sm">Generate DKIM key</button>
+      </form>
       <form method="post" action="/domains/delete">
         <input type="hidden" name="csrf_token" value="{{$csrf}}">
         <input type="hidden" name="id" value="{{.Domain.ID}}">

@@ -1,0 +1,11 @@
+{{template "header" .}}
+{{with .Data}}
+<div class="card">
+  <p class="muted">{{.Summary}} events in the last 24h from access logs.</p>
+  <table class="list"><thead><tr><th>Host</th><th>Requests</th><th>Bytes</th></tr></thead><tbody>
+  {{range .Hosts}}<tr><td>{{.Host}}</td><td>{{.Requests}}</td><td>{{humanBytes .Bytes}}</td></tr>{{else}}
+  <tr><td colspan="3" class="muted">No traffic data yet — enable Caddy JSON access logs.</td></tr>{{end}}
+  </tbody></table>
+</div>
+{{end}}
+{{template "footer" .}}

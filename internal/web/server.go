@@ -24,6 +24,7 @@ import (
 	"github.com/schmorrison/goshpanel/internal/metricsviz"
 	"github.com/schmorrison/goshpanel/internal/orchestrator"
 	"github.com/schmorrison/goshpanel/internal/runner"
+	"github.com/schmorrison/goshpanel/internal/secrets"
 	"github.com/schmorrison/goshpanel/internal/security"
 	"github.com/schmorrison/goshpanel/internal/store"
 	"github.com/schmorrison/goshpanel/internal/system"
@@ -51,6 +52,7 @@ type Server struct {
 	fns     *fn.Service
 	fleet   *fleet.Controller
 	collector *fleet.Collector
+	vault   *secrets.Vault
 
 	tmpl *template.Template
 	mux  *http.ServeMux
@@ -139,6 +141,11 @@ func New(cfg config.Config, logger *slog.Logger, st *store.Store) (*Server, erro
 	if err := s.auth.Bootstrap(cfg.BootstrapUser, cfg.BootstrapPassword); err != nil {
 		return nil, err
 	}
+	if cfg.SecretsKey != "" {
+		if v, err := secrets.NewVault(cfg.SecretsKey); err == nil {
+			s.vault = v
+		}
+	}
 	s.routes()
 	return s, nil
 }
@@ -169,6 +176,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /domains/caddyfile", s.requireAuth(s.handleCaddyfile))
 	s.mux.HandleFunc("GET /domains/{id}/zone", s.requireAuth(s.handleZoneFile))
 	s.mux.HandleFunc("POST /domains/{id}/deliverability", s.requireAuth(s.handleDeliverability))
+	s.mux.HandleFunc("POST /domains/{id}/dkim", s.requireAuth(s.handleDKIMGenerate))
 
 	s.mux.HandleFunc("GET /webmail", s.requireAuth(s.handleWebmailPage))
 	s.mux.HandleFunc("POST /webmail/save", s.requireAuth(s.handleWebmailSave))
@@ -262,12 +270,86 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /metrics", s.requireAuth(s.handleMetricsPage))
 	s.mux.HandleFunc("GET /analytics", s.requireAuth(s.handleAnalyticsPage))
 	s.mux.HandleFunc("GET /ssl", s.requireAuth(s.handleSSLPage))
+
+	// Health probes (no auth)
+	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
+	s.mux.HandleFunc("GET /readyz", s.handleReadyz)
+
+	// JSON API (bearer token)
+	s.mux.HandleFunc("GET /api", s.requireAuth(s.handleAPIPage))
+	s.mux.HandleFunc("POST /api/tokens/create", s.requireAuth(s.handleAPITokenCreate))
+	s.mux.HandleFunc("POST /api/tokens/delete", s.requireAuth(s.handleAPITokenDelete))
+	s.mux.HandleFunc("GET /api/v1/domains", s.apiAuth(s.handleAPIDomains))
+	s.mux.HandleFunc("GET /api/v1/metrics", s.apiAuth(s.handleAPIMetrics))
+	s.mux.HandleFunc("GET /api/v1/metrics/stream", s.apiAuth(s.handleAPIMetricsStream))
+	s.mux.HandleFunc("POST /api/v1/backups", s.apiAuth(s.handleAPIBackupCreate))
+	s.mux.HandleFunc("GET /api/v1/fleet/nodes", s.apiAuth(s.handleAPIFleetNodes))
+	s.mux.HandleFunc("POST /api/v1/fleet/nodes/{id}/command", s.apiAuth(s.handleAPIFleetCommand))
+	s.mux.HandleFunc("POST /api/v1/fleet/logs", s.fleetAuth(s.handleFleetLogsIngest))
+
+	// Tools hub & helpers
+	s.mux.HandleFunc("GET /tools", s.requireAuth(s.handleToolsPage))
+	s.mux.HandleFunc("GET /jump", s.requireAuth(s.handleJumpPage))
+	s.mux.HandleFunc("GET /http", s.requireAuth(s.handleHTTPPage))
+	s.mux.HandleFunc("POST /http/collections/create", s.requireAuth(s.handleHTTPCollectionCreate))
+	s.mux.HandleFunc("POST /http/requests/save", s.requireAuth(s.handleHTTPRequestSave))
+	s.mux.HandleFunc("POST /http/requests/run", s.requireAuth(s.handleHTTPRequestRun))
+	s.mux.HandleFunc("GET /bandwidth", s.requireAuth(s.handleBandwidthPage))
+	s.mux.HandleFunc("GET /redirects", s.requireAuth(s.handleRedirectsPage))
+	s.mux.HandleFunc("POST /redirects/create", s.requireAuth(s.handleRedirectCreate))
+	s.mux.HandleFunc("POST /redirects/delete", s.requireAuth(s.handleRedirectDelete))
+	s.mux.HandleFunc("POST /aliases/create", s.requireAuth(s.handleAliasCreate))
+	s.mux.HandleFunc("POST /aliases/delete", s.requireAuth(s.handleAliasDelete))
+	s.mux.HandleFunc("GET /firewall", s.requireAuth(s.handleFirewallPage))
+	s.mux.HandleFunc("POST /firewall/create", s.requireAuth(s.handleFirewallCreate))
+	s.mux.HandleFunc("POST /firewall/delete", s.requireAuth(s.handleFirewallDelete))
+	s.mux.HandleFunc("GET /firewall/download", s.requireAuth(s.handleFirewallDownload))
+	s.mux.HandleFunc("GET /ssh", s.requireAuth(s.handleSSHPage))
+	s.mux.HandleFunc("POST /ssh/keys/create", s.requireAuth(s.handleSSHKeyCreate))
+	s.mux.HandleFunc("POST /ssh/keys/delete", s.requireAuth(s.handleSSHKeyDelete))
+	s.mux.HandleFunc("GET /health-checks", s.requireAuth(s.handleHealthChecksPage))
+	s.mux.HandleFunc("POST /health-checks/create", s.requireAuth(s.handleHealthCheckCreate))
+	s.mux.HandleFunc("POST /health-checks/delete", s.requireAuth(s.handleHealthCheckDelete))
+	s.mux.HandleFunc("GET /secrets", s.requireAuth(s.handleSecretsPage))
+	s.mux.HandleFunc("POST /secrets/save", s.requireAuth(s.handleSecretSave))
+	s.mux.HandleFunc("POST /secrets/delete", s.requireAuth(s.handleSecretDelete))
+	s.mux.HandleFunc("GET /git-deploy", s.requireAuth(s.handleGitDeployPage))
+	s.mux.HandleFunc("POST /git-deploy/create", s.requireAuth(s.handleGitRepoCreate))
+	s.mux.HandleFunc("POST /hooks/git/{id}", s.handleGitWebhook)
+	s.mux.HandleFunc("GET /ddns", s.requireAuth(s.handleDDNSPage))
+	s.mux.HandleFunc("POST /ddns/create", s.requireAuth(s.handleDDNSCreate))
+	s.mux.HandleFunc("POST /ddns/delete", s.requireAuth(s.handleDDNSDelete))
+	s.mux.HandleFunc("GET /waf", s.requireAuth(s.handleWAFPage))
+	s.mux.HandleFunc("POST /waf/create", s.requireAuth(s.handleWAFCreate))
+	s.mux.HandleFunc("POST /waf/delete", s.requireAuth(s.handleWAFDelete))
+	s.mux.HandleFunc("GET /theme", s.requireAuth(s.handleThemePage))
+	s.mux.HandleFunc("POST /theme/save", s.requireAuth(s.handleThemeSave))
+	s.mux.HandleFunc("GET /onboarding", s.requireAuth(s.handleOnboardingPage))
+	s.mux.HandleFunc("POST /onboarding/complete", s.requireAuth(s.handleOnboardingComplete))
+	s.mux.HandleFunc("GET /webdav", s.requireAuth(s.handleWebDAVPage))
+	s.mux.HandleFunc("POST /logs/summary", s.requireAuth(s.handleLogSummary))
+	s.mux.HandleFunc("POST /backups/schedules/create", s.requireAuth(s.handleBackupScheduleCreate))
+	s.mux.HandleFunc("POST /databases/grants/create", s.requireAuth(s.handleDBGrantCreate))
+	s.mux.HandleFunc("POST /functions/schedules/create", s.requireAuth(s.handleFunctionScheduleCreate))
+
+	// Mission control
+	s.mux.HandleFunc("GET /mission", s.requireAuth(s.handleMissionPage))
+	s.mux.HandleFunc("POST /mission/incident", s.requireAuth(s.handleIncidentToggle))
+	s.mux.HandleFunc("POST /mission/fleet/rolling", s.requireAuth(s.handleFleetRollingDeploy))
+	s.mux.HandleFunc("POST /mission/fleet/backup-all", s.requireAuth(s.handleFleetBackupAll))
+	s.mux.HandleFunc("GET /fleet/logs", s.requireAuth(s.handleFleetLogsPage))
 }
 
 // Handler returns the fully wrapped HTTP handler.
 func (s *Server) Handler() http.Handler {
 	return s.withBlocker(s.withSecurityHeaders(s.mux))
 }
+
+// Backups exposes the backup service for background jobs.
+func (s *Server) Backups() *backups.Service { return s.backups }
+
+// Functions exposes the micro-functions service for background jobs.
+func (s *Server) Functions() *fn.Service { return s.fns }
 
 // formatDuration renders a duration like "3d 4h 5m".
 func formatDuration(d time.Duration) string {

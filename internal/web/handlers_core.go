@@ -91,6 +91,10 @@ type dashboardData struct {
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	if done, _ := s.store.OnboardingDone(); !done {
+		http.Redirect(w, r, "/onboarding", http.StatusSeeOther)
+		return
+	}
 	counts := map[string]int{}
 	if domains, err := s.store.Domains(); err == nil {
 		counts["domains"] = len(domains)

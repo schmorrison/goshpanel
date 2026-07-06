@@ -615,6 +615,47 @@ details.card > summary::-webkit-details-marker { display: none; }
 .perf-spark-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: .35rem; }
 .perf-spark .perf-chart { height: 64px; }
 
+.tool-card { display: block; text-decoration: none; color: inherit; }
+.tool-card:hover { text-decoration: none; color: inherit; }
+
+.fleet-map { display: flex; flex-wrap: wrap; gap: .75rem; }
+.fleet-node {
+  padding: .75rem 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  min-width: 160px;
+  background: rgba(0, 229, 255, 0.04);
+}
+.fleet-node.online { box-shadow: var(--glow-cyan); }
+
+.shell.incident-mode .content h1 {
+  background: linear-gradient(120deg, #ffb4bc, #ff6b7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+[data-theme="light"] {
+  --bg-deep: #eef2f8;
+  --bg: #f4f6fb;
+  --panel: rgba(255, 255, 255, 0.85);
+  --ink: #1a2233;
+  --muted: #5a6a82;
+  --line: rgba(0, 0, 0, 0.08);
+  --sidebar-bg: rgba(255, 255, 255, 0.95);
+  --sidebar-ink: #4a5568;
+}
+
+[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 70% 45% at 12% -8%, rgba(0, 180, 200, 0.06), transparent 55%),
+    linear-gradient(180deg, #eef2f8 0%, #f4f6fb 100%);
+}
+
+[data-theme="light"] code {
+  background: rgba(0, 120, 140, 0.08);
+  color: #0e7490;
+}
+
 @media (max-width: 900px) {
   .shell { flex-direction: column; }
   .sidebar {
