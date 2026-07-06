@@ -193,6 +193,14 @@ func apiRouteCatalog() []map[string]string {
 		{"method": "POST", "path": "/api/v1/backups", "auth": "bearer", "desc": "Create backup"},
 		{"method": "GET", "path": "/api/v1/fleet/nodes", "auth": "bearer", "desc": "List fleet nodes"},
 		{"method": "POST", "path": "/api/v1/fleet/nodes/{id}/command", "auth": "bearer", "desc": "Remote fleet command"},
+		{"method": "GET", "path": "/api/v1/short-links", "auth": "bearer", "desc": "List short links"},
+		{"method": "POST", "path": "/api/v1/short-links", "auth": "bearer", "desc": "Create short link"},
+		{"method": "GET", "path": "/api/v1/short-links/{id}", "auth": "bearer", "desc": "Get short link"},
+		{"method": "DELETE", "path": "/api/v1/short-links/{id}", "auth": "bearer", "desc": "Delete short link"},
+		{"method": "GET", "path": "/api/v1/webhooks/outbound", "auth": "bearer", "desc": "List outbound webhooks"},
+		{"method": "POST", "path": "/api/v1/webhooks/outbound", "auth": "bearer", "desc": "Create outbound webhook"},
+		{"method": "GET", "path": "/api/v1/webhooks/outbound/{id}/deliveries", "auth": "bearer", "desc": "Webhook delivery log"},
+		{"method": "GET", "path": "/api/v1/webhooks/inbound", "auth": "bearer", "desc": "List inbound webhooks"},
 	}
 }
 

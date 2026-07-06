@@ -16,6 +16,8 @@ type Kind string
 
 const (
 	KindCaddy    Kind = "caddy"
+	KindCoreDNS  Kind = "coredns"
+	KindMaddy    Kind = "maddy"
 	KindDocker   Kind = "docker"
 	KindPostgres Kind = "postgres"
 	KindMySQL    Kind = "mysql"
@@ -98,6 +100,16 @@ func (r *Registry) Caddy(c store.ServiceConnector, localPaths CaddyLocalPaths) (
 	return newCaddyClient(c, localPaths, r.docker)
 }
 
+// CoreDNS builds a CoreDNS client for the connector.
+func (r *Registry) CoreDNS(c store.ServiceConnector, localPaths CoreDNSLocalPaths) (*CoreDNSClient, error) {
+	return newCoreDNSClient(c, localPaths, r.docker)
+}
+
+// Maddy builds a maddy client for the connector.
+func (r *Registry) Maddy(c store.ServiceConnector, localPaths MaddyLocalPaths) (*MaddyClient, error) {
+	return newMaddyClient(c, localPaths, r.docker)
+}
+
 // CaddyLocalPaths supplies on-disk paths for local / fallback mode.
 type CaddyLocalPaths struct {
 	ConfigPath     string
@@ -110,6 +122,16 @@ func LocalCaddyPaths(cfg config.Config) CaddyLocalPaths {
 		ConfigPath:    cfg.CaddyConfigPath,
 		AccessLogPath: cfg.CaddyAccessLog,
 	}
+}
+
+// LocalCoreDNSPaths builds paths from panel config.
+func LocalCoreDNSPaths(cfg config.Config) CoreDNSLocalPaths {
+	return CoreDNSLocalPaths{ConfigDir: cfg.CoreDNSConfigDir}
+}
+
+// LocalMaddyPaths builds paths from panel config.
+func LocalMaddyPaths(cfg config.Config) MaddyLocalPaths {
+	return MaddyLocalPaths{ConfigPath: cfg.MaddyConfigPath}
 }
 
 // DockerService returns a docker CLI wrapper for the connector.
@@ -196,6 +218,20 @@ func (r *Registry) Ping(ctx context.Context, c store.ServiceConnector) error {
 			break
 		}
 		_, err = client.Read(ctx)
+	case KindCoreDNS:
+		client, e := r.CoreDNS(c, LocalCoreDNSPaths(r.cfg))
+		if e != nil {
+			err = e
+			break
+		}
+		_, err = client.ReadCorefile(ctx)
+	case KindMaddy:
+		client, e := r.Maddy(c, LocalMaddyPaths(r.cfg))
+		if e != nil {
+			err = e
+			break
+		}
+		_, err = client.Read(ctx)
 	case KindDocker:
 		svc, e := r.DockerService(c)
 		if e != nil {
@@ -237,9 +273,45 @@ func (r *Registry) EffectiveCaddy() (store.ServiceConnector, CaddyLocalPaths, er
 		return store.ServiceConnector{}, paths, err
 	}
 	return store.ServiceConnector{
-		Name:  "local",
-		Kind:  string(KindCaddy),
-		Mode:  string(ModeLocal),
+		Name:    "local",
+		Kind:    string(KindCaddy),
+		Mode:    string(ModeLocal),
+		Enabled: true,
+	}, paths, nil
+}
+
+// EffectiveCoreDNS returns the default CoreDNS connector or a synthetic local one.
+func (r *Registry) EffectiveCoreDNS() (store.ServiceConnector, CoreDNSLocalPaths, error) {
+	paths := LocalCoreDNSPaths(r.cfg)
+	c, err := r.Default(KindCoreDNS)
+	if err == nil {
+		return c, paths, nil
+	}
+	if err != store.ErrNotFound {
+		return store.ServiceConnector{}, paths, err
+	}
+	return store.ServiceConnector{
+		Name:    "local",
+		Kind:    string(KindCoreDNS),
+		Mode:    string(ModeLocal),
+		Enabled: true,
+	}, paths, nil
+}
+
+// EffectiveMaddy returns the default maddy connector or a synthetic local one.
+func (r *Registry) EffectiveMaddy() (store.ServiceConnector, MaddyLocalPaths, error) {
+	paths := LocalMaddyPaths(r.cfg)
+	c, err := r.Default(KindMaddy)
+	if err == nil {
+		return c, paths, nil
+	}
+	if err != store.ErrNotFound {
+		return store.ServiceConnector{}, paths, err
+	}
+	return store.ServiceConnector{
+		Name:    "local",
+		Kind:    string(KindMaddy),
+		Mode:    string(ModeLocal),
 		Enabled: true,
 	}, paths, nil
 }

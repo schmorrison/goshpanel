@@ -22,6 +22,30 @@
   <label>Docker host <input type="text" name="docker_host" value="{{.Caddy.DockerHost}}"></label>
   <label>Admin API URL <input type="text" name="admin_url" value="{{.Caddy.AdminURL}}"></label>
   <label>Admin API token <input type="password" name="admin_token" placeholder="{{if .HasSecret}}leave blank to keep{{else}}optional{{end}}"></label>
+  {{else if eq .Connector.Kind "coredns"}}
+  <label>Mode
+    <select name="mode">
+      <option value="docker" {{if eq .Connector.Mode "docker"}}selected{{end}}>docker</option>
+      <option value="local" {{if eq .Connector.Mode "local"}}selected{{end}}>local</option>
+    </select>
+  </label>
+  <label>Container <input type="text" name="container" value="{{.CoreDNS.Container}}"></label>
+  <label>Corefile path in container <input type="text" name="corefile_path_container" value="{{.CoreDNS.CorefilePathContainer}}"></label>
+  <label>Zones dir in container <input type="text" name="zones_dir_container" value="{{.CoreDNS.ZonesDirContainer}}"></label>
+  <label>Host Corefile path <input type="text" name="corefile_path_host" value="{{.CoreDNS.CorefilePathHost}}"></label>
+  <label>Host zones dir <input type="text" name="zones_dir_host" value="{{.CoreDNS.ZonesDirHost}}"></label>
+  <label>Docker host <input type="text" name="docker_host" value="{{.CoreDNS.DockerHost}}"></label>
+  {{else if eq .Connector.Kind "maddy"}}
+  <label>Mode
+    <select name="mode">
+      <option value="docker" {{if eq .Connector.Mode "docker"}}selected{{end}}>docker</option>
+      <option value="local" {{if eq .Connector.Mode "local"}}selected{{end}}>local</option>
+    </select>
+  </label>
+  <label>Container <input type="text" name="container" value="{{.Maddy.Container}}"></label>
+  <label>Config path in container <input type="text" name="config_path_container" value="{{.Maddy.ConfigPathContainer}}"></label>
+  <label>Host volume path <input type="text" name="config_path_host" value="{{.Maddy.ConfigPathHost}}"></label>
+  <label>Docker host <input type="text" name="docker_host" value="{{.Maddy.DockerHost}}"></label>
   {{else if eq .Connector.Kind "docker"}}
   <label>DOCKER_HOST <input type="text" name="docker_host" value="{{.Docker.DockerHost}}" required></label>
   {{else if or (eq .Connector.Kind "postgres") (eq .Connector.Kind "mysql")}}

@@ -8,12 +8,12 @@ import (
 
 // ShortLink is a shortened URL (panel /s/{code} or custom host).
 type ShortLink struct {
-	ID        int64
-	Code      string
-	TargetURL string
-	Host      string
-	Clicks    int64
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	Code      string    `json:"code"`
+	TargetURL string    `json:"target_url"`
+	Host      string    `json:"host"`
+	Clicks    int64     `json:"clicks"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (s *Store) ShortLinks() ([]ShortLink, error) {

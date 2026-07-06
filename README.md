@@ -93,7 +93,8 @@ Use **Connectors** (`/connectors`) to point GoshPanel at infrastructure running 
 
 1. **Caddy in Docker** — container name, config path (in-container and/or host volume), access log path, optional **Admin API URL/token** for reload. The **Caddy dashboard** (`/connectors/caddy`) lets you edit the Caddyfile, reload, and tail logs. Orchestrator **Apply Caddy** uses the default Caddy connector.
 2. **PostgreSQL / MySQL / MariaDB** — host, port, admin credentials (typically the published Docker port). **Databases** → *Provision database via connector* creates databases and optional app users.
-3. **Remote Docker** — set `DOCKER_HOST` for a remote daemon (TCP socket or SSH context URL).
+3. **CoreDNS / Maddy in Docker** — same pattern as Caddy: edit Corefile or maddy.conf, reload, tail logs. Orchestrator **Apply CoreDNS** / **Apply Maddy** use the default connector.
+4. **Remote Docker** — set `DOCKER_HOST` for a remote daemon (TCP socket or SSH context URL).
 
 Without connectors, behavior is unchanged: local `GOSHPANEL_CADDY_CONFIG` and manual DSNs.
 
@@ -109,6 +110,19 @@ Without connectors, behavior is unchanged: local `GOSHPANEL_CADDY_CONFIG` and ma
 
 - **Outbound:** subscribe at `/webhooks` to panel audit events (`*` or comma-separated action names). Payloads are JSON with optional HMAC via `X-GoshPanel-Signature`. Use **Test** to send a `test.ping` event.
 - **Inbound:** `POST /hooks/in/{token}` — actions: `log`, `apply_caddy`, `run_function`. Optional shared secret via `?secret=`, `Authorization: Bearer`, or HMAC signature.
+- Delivery attempts are logged on `/webhooks` and via `GET /api/v1/webhooks/outbound/{id}/deliveries`.
+
+### REST API (short links & webhooks)
+
+Bearer tokens from `/api` also expose:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET/POST | `/api/v1/short-links` | List / create short links |
+| GET/DELETE | `/api/v1/short-links/{id}` | Get / delete a link |
+| GET/POST | `/api/v1/webhooks/outbound` | List / create outbound subscriptions |
+| GET | `/api/v1/webhooks/outbound/{id}/deliveries` | Delivery log |
+| GET | `/api/v1/webhooks/inbound` | List inbound hooks |
 
 ## Configuration
 

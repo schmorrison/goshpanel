@@ -65,7 +65,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event string, data map[string
 		if !sub.Enabled || !matchesEvent(sub.Events, event) {
 			continue
 		}
-		d.deliver(ctx, sub, body)
+		d.deliver(ctx, sub, event, body)
 	}
 }
 
@@ -94,7 +94,7 @@ func (d *Dispatcher) SendTest(ctx context.Context, subID int64) error {
 	if err != nil {
 		return err
 	}
-	d.deliver(ctx, sub, body)
+	d.deliver(ctx, sub, "test.ping", body)
 	sub, err = d.store.WebhookSubscriptionByID(subID)
 	if err != nil {
 		return err
@@ -118,10 +118,11 @@ func matchesEvent(spec, event string) bool {
 	return false
 }
 
-func (d *Dispatcher) deliver(ctx context.Context, sub store.WebhookSubscription, body []byte) {
+func (d *Dispatcher) deliver(ctx context.Context, sub store.WebhookSubscription, event string, body []byte) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sub.URL, bytes.NewReader(body))
 	if err != nil {
 		_ = d.store.TouchWebhookSubscription(sub.ID, 0, err.Error())
+		_ = d.store.AppendWebhookDelivery(sub.ID, event, 0, err.Error())
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -134,6 +135,7 @@ func (d *Dispatcher) deliver(ctx context.Context, sub store.WebhookSubscription,
 	resp, err := d.client.Do(req)
 	if err != nil {
 		_ = d.store.TouchWebhookSubscription(sub.ID, 0, err.Error())
+		_ = d.store.AppendWebhookDelivery(sub.ID, event, 0, err.Error())
 		if d.log != nil {
 			d.log.Warn("webhook delivery failed", "name", sub.Name, "err", err)
 		}
@@ -144,9 +146,11 @@ func (d *Dispatcher) deliver(ctx context.Context, sub store.WebhookSubscription,
 	if resp.StatusCode >= 300 {
 		msg := fmt.Sprintf("HTTP %d", resp.StatusCode)
 		_ = d.store.TouchWebhookSubscription(sub.ID, resp.StatusCode, msg)
+		_ = d.store.AppendWebhookDelivery(sub.ID, event, resp.StatusCode, msg)
 		return
 	}
 	_ = d.store.TouchWebhookSubscription(sub.ID, resp.StatusCode, "")
+	_ = d.store.AppendWebhookDelivery(sub.ID, event, resp.StatusCode, "")
 }
 
 // VerifySignature checks an HMAC-SHA256 hex digest against body bytes.

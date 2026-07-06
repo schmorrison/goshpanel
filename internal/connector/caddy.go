@@ -236,6 +236,18 @@ func (f *dockerFactory) For(c store.ServiceConnector) (*DockerCLI, error) {
 			return nil, err
 		}
 		host = cfg.DockerHost
+	} else if c.Kind == string(KindCoreDNS) {
+		cfg, err := ParseCoreDNSConfig(c.ConfigJSON)
+		if err != nil {
+			return nil, err
+		}
+		host = cfg.DockerHost
+	} else if c.Kind == string(KindMaddy) {
+		cfg, err := ParseMaddyConfig(c.ConfigJSON)
+		if err != nil {
+			return nil, err
+		}
+		host = cfg.DockerHost
 	}
 	return &DockerCLI{bin: bin, dockerHost: host}, nil
 }

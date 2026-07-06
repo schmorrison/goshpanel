@@ -168,7 +168,7 @@ func scanServiceConnector(row scScanner) (ServiceConnector, error) {
 // ValidateConnectorKind reports whether kind is supported.
 func ValidateConnectorKind(kind string) error {
 	switch kind {
-	case "caddy", "docker", "postgres", "mysql":
+	case "caddy", "docker", "postgres", "mysql", "coredns", "maddy":
 		return nil
 	default:
 		return fmt.Errorf("unsupported connector kind %q", kind)

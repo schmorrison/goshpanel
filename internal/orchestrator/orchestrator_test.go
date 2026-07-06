@@ -27,7 +27,9 @@ func testOrchestrator(t *testing.T) (*Service, *store.Store, string) {
 		SystemdDir:  filepath.Join(dir, "systemd"),
 	}
 	reg := connector.NewRegistry(st, config.Config{
-		CaddyConfigPath: paths.CaddyConfig,
+		CaddyConfigPath:  paths.CaddyConfig,
+		CoreDNSConfigDir: paths.CoreDNSDir,
+		MaddyConfigPath:  paths.MaddyConfig,
 	})
 	return New(st, paths, reg), st, dir
 }

@@ -55,6 +55,12 @@ func ConfigFromJSON(kind, raw string) (any, error) {
 		return c, err
 	case "docker":
 		return ParseDockerConfig(raw)
+	case "coredns":
+		c, err := ParseCoreDNSConfig(raw)
+		return c, err
+	case "maddy":
+		c, err := ParseMaddyConfig(raw)
+		return c, err
 	case "postgres", "mysql":
 		return ParseDatabaseConfig(raw)
 	default:

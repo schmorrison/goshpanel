@@ -89,5 +89,24 @@
   </table>
 </div>
 </div>
+
+<div class="card">
+  <h2>Recent deliveries</h2>
+  <table class="list">
+    <thead><tr><th>Time</th><th>Subscription</th><th>Event</th><th>Status</th></tr></thead>
+    <tbody>
+    {{range .Deliveries}}
+    <tr>
+      <td>{{timefmt .CreatedAt}}</td>
+      <td>#{{.SubscriptionID}}</td>
+      <td><code>{{.Event}}</code></td>
+      <td>{{if .Error}}<span class="badge-warn">{{.Error}}</span>{{else}}<span class="badge-ok">HTTP {{.Status}}</span>{{end}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="muted">No deliveries yet.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
 {{end}}
 {{template "footer" .}}

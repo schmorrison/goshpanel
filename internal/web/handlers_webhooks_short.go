@@ -19,9 +19,10 @@ type shortLinksData struct {
 }
 
 type webhooksData struct {
-	Outbound []store.WebhookSubscription
-	Inbound  []store.InboundWebhook
-	BaseURL  string
+	Outbound   []store.WebhookSubscription
+	Inbound    []store.InboundWebhook
+	Deliveries []store.WebhookDelivery
+	BaseURL    string
 }
 
 func (s *Server) handleShortLinksPage(w http.ResponseWriter, r *http.Request) {
@@ -122,10 +123,12 @@ func (s *Server) handleShortRedirect(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleWebhooksPage(w http.ResponseWriter, r *http.Request) {
 	outbound, _ := s.store.WebhookSubscriptions()
 	inbound, _ := s.store.InboundWebhooks()
+	deliveries, _ := s.store.WebhookDeliveries(0, 40)
 	s.render(w, r, "webhooks.html", "Webhooks", "webhooks", webhooksData{
-		Outbound: outbound,
-		Inbound:  inbound,
-		BaseURL:  requestBaseURL(r),
+		Outbound:   outbound,
+		Inbound:    inbound,
+		Deliveries: deliveries,
+		BaseURL:    requestBaseURL(r),
 	})
 }
 

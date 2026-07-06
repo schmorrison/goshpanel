@@ -1,0 +1,37 @@
+{{template "header" .}}
+{{$csrf := .CSRF}}
+{{with .Data}}
+<div class="toolbar">
+  {{range .Connectors}}
+  <a class="btn btn-sm{{if eq $.Data.Connector.ID .ID}} btn-primary{{end}}" href="/connectors/maddy?id={{.ID}}">{{.Name}}</a>
+  {{end}}
+  <a class="btn btn-sm" href="/connectors">All connectors</a>
+  <a class="btn btn-sm" href="/orchestrator">Orchestrator</a>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h2>maddy.conf — <code>{{.ConfigPath}}</code></h2>
+    <div class="actions">
+      <form method="post" action="/connectors/maddy/reload">
+        <input type="hidden" name="csrf_token" value="{{$csrf}}">
+        <input type="hidden" name="connector_id" value="{{.Connector.ID}}">
+        <button type="submit" class="btn btn-sm btn-primary">Reload Maddy</button>
+      </form>
+    </div>
+  </div>
+  <form method="post" action="/connectors/maddy/save">
+    <input type="hidden" name="csrf_token" value="{{$csrf}}">
+    <input type="hidden" name="connector_id" value="{{.Connector.ID}}">
+    <textarea name="config" class="editor" rows="22" spellcheck="false">{{.Content}}</textarea>
+    <div class="toolbar"><button type="submit" class="btn btn-primary">Save maddy.conf</button></div>
+  </form>
+  <p class="muted">Orchestrator <strong>Apply Maddy</strong> renders mailboxes/forwarders through the default Maddy connector.</p>
+</div>
+
+<div class="card">
+  <h2>Logs</h2>
+  <pre class="terminal-output">{{if .Logs}}{{.Logs}}{{else}}No logs yet.{{end}}</pre>
+</div>
+{{end}}
+{{template "footer" .}}

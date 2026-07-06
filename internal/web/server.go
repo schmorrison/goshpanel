@@ -308,6 +308,17 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/fleet/nodes/{id}/command", s.apiAuth(s.handleAPIFleetCommand))
 	s.mux.HandleFunc("POST /api/v1/fleet/logs", s.fleetAuth(s.handleFleetLogsIngest))
 
+	s.mux.HandleFunc("GET /api/v1/short-links", s.apiAuth(s.handleAPIShortLinks))
+	s.mux.HandleFunc("POST /api/v1/short-links", s.apiAuth(s.handleAPIShortLinks))
+	s.mux.HandleFunc("GET /api/v1/short-links/{id}", s.apiAuth(s.handleAPIShortLinkByID))
+	s.mux.HandleFunc("DELETE /api/v1/short-links/{id}", s.apiAuth(s.handleAPIShortLinkByID))
+	s.mux.HandleFunc("GET /api/v1/webhooks/outbound", s.apiAuth(s.handleAPIWebhookOutbound))
+	s.mux.HandleFunc("POST /api/v1/webhooks/outbound", s.apiAuth(s.handleAPIWebhookOutbound))
+	s.mux.HandleFunc("GET /api/v1/webhooks/outbound/{id}", s.apiAuth(s.handleAPIWebhookOutboundByID))
+	s.mux.HandleFunc("DELETE /api/v1/webhooks/outbound/{id}", s.apiAuth(s.handleAPIWebhookOutboundByID))
+	s.mux.HandleFunc("GET /api/v1/webhooks/outbound/{id}/deliveries", s.apiAuth(s.handleAPIWebhookDeliveries))
+	s.mux.HandleFunc("GET /api/v1/webhooks/inbound", s.apiAuth(s.handleAPIWebhookInbound))
+
 	// Service connectors
 	s.mux.HandleFunc("GET /connectors", s.requireAuth(s.handleConnectorsPage))
 	s.mux.HandleFunc("POST /connectors/create", s.requireAuth(s.handleConnectorCreate))
@@ -319,6 +330,12 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /connectors/caddy", s.requireAuth(s.handleCaddyConnectorPage))
 	s.mux.HandleFunc("POST /connectors/caddy/save", s.requireAuth(s.handleCaddyConnectorSave))
 	s.mux.HandleFunc("POST /connectors/caddy/reload", s.requireAuth(s.handleCaddyConnectorReload))
+	s.mux.HandleFunc("GET /connectors/coredns", s.requireAuth(s.handleCoreDNSConnectorPage))
+	s.mux.HandleFunc("POST /connectors/coredns/save", s.requireAuth(s.handleCoreDNSConnectorSave))
+	s.mux.HandleFunc("POST /connectors/coredns/reload", s.requireAuth(s.handleCoreDNSConnectorReload))
+	s.mux.HandleFunc("GET /connectors/maddy", s.requireAuth(s.handleMaddyConnectorPage))
+	s.mux.HandleFunc("POST /connectors/maddy/save", s.requireAuth(s.handleMaddyConnectorSave))
+	s.mux.HandleFunc("POST /connectors/maddy/reload", s.requireAuth(s.handleMaddyConnectorReload))
 	s.mux.HandleFunc("POST /databases/provision", s.requireAuth(s.handleDatabaseProvision))
 
 	// URL shortener & webhooks

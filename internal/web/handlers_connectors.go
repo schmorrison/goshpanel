@@ -27,6 +27,8 @@ type caddyConnectorData struct {
 type connectorEditData struct {
 	Connector store.ServiceConnector
 	Caddy     connector.CaddyConfig
+	CoreDNS   connector.CoreDNSConfig
+	Maddy     connector.MaddyConfig
 	Docker    connector.DockerConfig
 	Database  connector.DatabaseConfig
 	HasSecret bool // caddy admin token or db password stored
@@ -114,6 +116,22 @@ func buildConnectorConfig(kind, mode string, r *http.Request) any {
 			DefaultDatabase: r.FormValue("default_database"),
 			SSLMode:         r.FormValue("ssl_mode"),
 		}
+	case "coredns":
+		return connector.CoreDNSConfig{
+			Container:             r.FormValue("container"),
+			CorefilePathContainer: r.FormValue("corefile_path_container"),
+			CorefilePathHost:      r.FormValue("corefile_path_host"),
+			ZonesDirContainer:     r.FormValue("zones_dir_container"),
+			ZonesDirHost:          r.FormValue("zones_dir_host"),
+			DockerHost:            r.FormValue("docker_host"),
+		}
+	case "maddy":
+		return connector.MaddyConfig{
+			Container:           r.FormValue("container"),
+			ConfigPathContainer: r.FormValue("config_path_container"),
+			ConfigPathHost:      r.FormValue("config_path_host"),
+			DockerHost:          r.FormValue("docker_host"),
+		}
 	default:
 		return map[string]string{}
 	}
@@ -187,6 +205,12 @@ func (s *Server) handleConnectorEditPage(w http.ResponseWriter, r *http.Request)
 		cfg, _ := connector.ParseCaddyConfig(c.ConfigJSON)
 		data.Caddy = cfg
 		data.HasSecret = cfg.AdminToken != ""
+	case "coredns":
+		cfg, _ := connector.ParseCoreDNSConfig(c.ConfigJSON)
+		data.CoreDNS = cfg
+	case "maddy":
+		cfg, _ := connector.ParseMaddyConfig(c.ConfigJSON)
+		data.Maddy = cfg
 	case "docker":
 		cfg, _ := connector.ParseDockerConfig(c.ConfigJSON)
 		data.Docker = cfg
